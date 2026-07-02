@@ -328,12 +328,9 @@ protected lemma IsUAP.isBddFun (hf : IsUAP f) : IsBddFun f := by
   refine ((isBounded_biUnion F.finite_toSet).2 fun g _ ↦
     isBounded_closedBall (x := f g⁻¹) (r := 1)).subset ?_
   rintro _ ⟨y, rfl⟩
-  obtain ⟨g, hg, t, ht, hgt⟩ := Set.mem_smul.1 (hsub (Set.mem_univ y⁻¹))
-  rw [smul_eq_mul] at hgt
-  -- `y = t⁻¹ * g⁻¹`, and `t` is an `ε`-almost-period, so `‖f y - f g⁻¹‖ ≤ 1`.
-  have hy : t⁻¹ * g⁻¹ = y := by rw [← mul_inv_rev, hgt, inv_inv]
+  obtain ⟨g, hg, ht⟩ := Set.mem_smul_iff_inv_smul_mem.1 (hsub (Set.mem_univ y⁻¹))
   refine Set.mem_biUnion hg ?_
-  simpa [Metric.mem_closedBall, dist_eq_norm, hy] using ht g⁻¹
+  simpa [Metric.mem_closedBall, dist_eq_norm] using ht g⁻¹
 
 /-- Postcomposing a uniformly almost-periodic function with a continuous function gives a uniformly
 almost-periodic function. -/
