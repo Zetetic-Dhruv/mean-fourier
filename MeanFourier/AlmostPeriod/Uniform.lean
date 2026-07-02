@@ -33,10 +33,10 @@ public section
 open Bornology Metric Real
 open scoped Finset Pointwise
 
-variable {𝕜 G H R E : Type*} [RCLike 𝕜] [Group G] [Group H] {K L : ℝ → ℝ} {a b x t : G} {c : 𝕜}
+variable {𝕜 G H R E F : Type*} [RCLike 𝕜] [Group G] [Group H] {K L : ℝ → ℝ} {a b x t : G} {c : 𝕜}
 
 section NormedAddCommGroup
-variable [NormedAddCommGroup E] {f g : G → E} {z : E} {ε : ℝ}
+variable [NormedAddCommGroup E] [NormedAddCommGroup F] {f g : G → E} {z : E} {ε : ℝ}
 
 variable (f ε) in
 /-- The uniform `ε`-almost-periods of a function `f` from a group `G` to a normed space `E` are
@@ -399,6 +399,47 @@ protected lemma IsUAP.star (hf : IsUAP f) : IsUAP (fun x ↦ star (f x)) := by
 
 end Star
 
+section Prod
+variable {f : G → E × F}
+
+/-- The `ε`-almost-periods of a product-valued function are the common `ε`-almost-periods of its two
+components. -/
+lemma uniformAP_prod : AP∞(f, ε) = AP∞(Prod.fst ∘ f, ε) ∩ AP∞(Prod.snd ∘ f, ε) := by
+  ext t; simp [mem_uniformAP, Prod.norm_def, forall_and]
+
+/-- A `K`-almost-periodic function to a product normed group is `K`-almost-periodic in its first
+component. -/
+@[to_fun (attr := fun_prop) IsUAPWith.fun_fst]
+protected lemma IsUAPWith.fst_comp (hf : IsUAPWith K f) : IsUAPWith K (Prod.fst ∘ f) :=
+  fun ε hε ↦ (hf hε).subset_right <| by grw [uniformAP_prod, Set.inter_subset_left]
+
+/-- A `K`-almost-periodic function to a product normed group is `K`-almost-periodic in its second
+component. -/
+@[to_fun (attr := fun_prop) IsUAPWith.fun_snd]
+protected lemma IsUAPWith.snd_comp (hf : IsUAPWith K f) : IsUAPWith K (Prod.snd ∘ f) :=
+  fun ε hε ↦ (hf hε).subset_right <| by grw [uniformAP_prod, Set.inter_subset_right]
+
+/-- The product of `K`- and `L`-almost-periodic functions is
+`ε ↦ K (ε / 2) * L (ε / 2)`-almost-periodic. -/
+protected lemma IsUAPWith.prodMk {f : G → E} {g : G → F} (hf : IsUAPWith K f) (hg : IsUAPWith L g) :
+    IsUAPWith (fun ε ↦ K (ε / 2) * L (ε / 2)) fun x ↦ (f x, g x) := by
+  rintro ε hε
+  replace hε : 0 < ε / 2 := by linarith
+  refine ((hf hε).inter (hg hε)).subset_right ?_
+  grw [uniformAP_prod, uniformAP_inv, uniformAP_inv, uniformAP_mul_uniformAP_subset,
+    uniformAP_mul_uniformAP_subset]
+  simp [Function.comp_def]
+
+/-- A product-valued function is uniformly almost-periodic iff both of its components are. -/
+lemma isUAP_prod_iff : IsUAP f ↔ IsUAP (Prod.fst ∘ f) ∧ IsUAP (Prod.snd ∘ f) where
+  mp hf := by obtain ⟨K, hf⟩ := hf.exists_isUAPWith; exact ⟨hf.fst_comp.isUAP, hf.snd_comp.isUAP⟩
+  mpr := by
+    rintro ⟨hf, hg⟩
+    obtain ⟨K, hf⟩ := hf.exists_isUAPWith
+    obtain ⟨L, hg⟩ := hg.exists_isUAPWith
+    exact (hf.prodMk hg).isUAP
+
+end Prod
 end NormedAddCommGroup
 
 section NormedRing
