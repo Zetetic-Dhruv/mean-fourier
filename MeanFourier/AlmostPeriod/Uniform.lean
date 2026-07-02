@@ -22,6 +22,24 @@ public import MeanFourier.Mathlib.Topology.MetricSpace.Pseudo.Defs
 
 This files defines uniformly almost-periodic functions in a group following von Neumann.
 
+For a group `G` and a finite dimensional real normed space `E`, a function `f : G → E` is
+uniformly almost-periodic if for every `ε > 0` one can cover `G` with finitely many translates of
+the set of `ε`-almost-periods `{t : G | ∀ x, ‖f (t⁻¹ * x) - f x‖ ≤ ε}`.
+
+We make von Neumann's theory quantitative by keeping track of the "modulus of almost-periodicity",
+i.e. for every `ε > 0` of a number `K ε` of translates of the `ε`-almost-period that suffice to
+cover `G`.
+
+## Implementation notes
+
+Von Neumann in 1934 defines all three of left almost-periodic (LAP, the one defined above),
+right almost-periodic (RAP, same as LAP but replacing left translates with right ones)
+and uniformly almost-periodic (UAP, the combination of both). As proven by Maak a year later,
+LAP qualitatively implies RAP, meaning we can get away with a single qualitative predicate.
+Although the quantitative dependence in Maak's result is poor, we do not introduce a separate
+quantitative predicate for RAP functions. This matches the qualitative predicate. We instead suggest
+spelling quantitative right-almost periodic functions using precomposition with `MulOpposite.unop`.
+
 ## References
 
 * [*Almost periodic functions in a group. I*, John von Neumann](https://doi.org/10.2307/1989792)
