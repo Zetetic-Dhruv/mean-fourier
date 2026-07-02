@@ -39,7 +39,7 @@ section NormedAddCommGroup
 variable [NormedAddCommGroup E] {f g : G → E} {z : E} {ε : ℝ}
 
 variable (f ε) in
-/-- The uniform `ε`-almost periods of a function `f` from a group `G` to a normed space `E` are
+/-- The uniform `ε`-almost-periods of a function `f` from a group `G` to a normed space `E` are
 those elements of the group that move `f` by at most `ε` in L^∞ norm. -/
 @[expose]
 def uniformAP : Set G := {t | ∀ x, ‖f (t⁻¹ * x) - f x‖ ≤ ε}
@@ -108,11 +108,11 @@ variable (f) in
 lemma uniformAP_comp_mulEquiv (φ : H ≃* G) : AP∞(f ∘ φ, ε) = φ ⁻¹' AP∞(f, ε) := by
   ext; simp [mem_uniformAP, φ.surjective.forall]
 
-/-- The almost periods are unchanged by right translation of the argument. -/
+/-- The almost-periods are unchanged by right translation of the argument. -/
 @[simp] lemma uniformAP_comp_mul_right (a : G) : AP∞(fun x ↦ f (x * a), ε) = AP∞(f, ε) := by
   ext t; exact (Equiv.mulRight a).forall_congr <| by simp [mul_assoc]
 
-/-- If `f` is `δ`-uniformly close to `g`, every `ε`-almost period of `g` is an `(ε + 2δ)`-almost
+/-- If `f` is `δ`-uniformly close to `g`, every `ε`-almost-period of `g` is an `(ε + 2δ)`-almost
 period of `f`. -/
 lemma uniformAP_subset_of_forall_norm_sub_le {δ : ℝ} (hfg : ∀ x, ‖f x - g x‖ ≤ δ) :
     AP∞(g, ε) ⊆ AP∞(f, ε + 2 * δ) := by
@@ -124,7 +124,7 @@ lemma uniformAP_subset_of_forall_norm_sub_le {δ : ℝ} (hfg : ∀ x, ‖f x - g
 
 variable (K f) in
 /-- For a "modulus of almost-periodicity" `K : ℝ → ℝ`,a function is uniformly `K`-almost-periodic
-if its uniform `ε`-almost periods are `K_ε`-syndetic for all `ε > 0`.
+if its uniform `ε`-almost-periods are `K_ε`-syndetic for all `ε > 0`.
 
 This is a quantitative version of `IsUAP`. -/
 @[expose, fun_prop] def IsUAPWith : Prop := ∀ ⦃ε⦄, 0 < ε → CovBySMul G (K ε) .univ AP∞(f, ε)
@@ -157,7 +157,7 @@ protected lemma IsUAPWith.smul [NormedSpace 𝕜 E] (hf : IsUAPWith K f) (hc : c
   simp only [ne_eq, hc, not_false_eq_true, uniformAP_smul]
   exact hf <| by positivity
 
-/-- Almost periodicity is quantitatively preserved by precomposition with a group isomorphism. -/
+/-- Almost-periodicity is quantitatively preserved by precomposition with a group isomorphism. -/
 lemma IsUAPWith.comp_mulEquiv {φ : H ≃* G} (hf : IsUAPWith K f) : IsUAPWith K (f ∘ φ) := by
   classical
   intro ε hε
@@ -173,7 +173,7 @@ lemma IsUAPWith.comp_mulEquiv {φ : H ≃* G} (hf : IsUAPWith K f) : IsUAPWith K
   mp hf := by simpa [Function.comp_assoc] using hf.comp_mulEquiv (φ := φ.symm)
   mpr := .comp_mulEquiv
 
-/-- Almost periodicity is quantitatively preserved by uniform limits along any (nontrivial) filter.
+/-- Almost-periodicity is quantitatively preserved by uniform limits along any (nontrivial) filter.
 -/
 lemma IsUAPWith.of_tendstoUniformly {ι : Type*} {p : Filter ι} [p.NeBot] {u : ι → G → E}
     (hu : ∀ᶠ n in p, IsUAPWith K (u n)) (h : TendstoUniformly u f p) :
@@ -254,7 +254,7 @@ protected lemma IsUAPWith.translate (hf : IsUAPWith K f) :
   hf.comp_mul_left
 
 variable (f) in
-/-- A function is uniformly almost periodic if its uniform `ε`-almost periods are syndetic for all
+/-- A function is uniformly almost-periodic if its uniform `ε`-almost-periods are syndetic for all
 `ε > 0`. -/
 @[expose, fun_prop] def IsUAP : Prop := ∀ ⦃ε⦄, 0 < ε → ∃ K, CovBySMul G K .univ AP∞(f, ε)
 
@@ -284,7 +284,7 @@ protected lemma IsUAP.smul [NormedSpace 𝕜 E] (hf : IsUAP f) : IsUAP (c • f)
   · obtain ⟨K, hf⟩ := hf.exists_isUAPWith
     exact (hf.smul hc).isUAP
 
-/-- Almost periodicity is preserved by precomposition with a group isomorphism. -/
+/-- Almost-periodicity is preserved by precomposition with a group isomorphism. -/
 lemma IsUAP.comp_mulEquiv {H : Type*} [Group H] (φ : H ≃* G) (hf : IsUAP f) :
     IsUAP (f ∘ φ) := by
   obtain ⟨K, hf⟩ := hf.exists_isUAPWith; exact hf.comp_mulEquiv.isUAP
@@ -294,7 +294,7 @@ lemma IsUAP.comp_mulEquiv {H : Type*} [Group H] (φ : H ≃* G) (hf : IsUAP f) :
 
 @[fun_prop]
 protected lemma IsUAP.isBddFun (hf : IsUAP f) : IsBddFun f := by
-  -- At `ε = 1`, the almost periods are syndetic: `univ ⊆ F • AP∞(f, 1)` for some finite `F`.
+  -- At `ε = 1`, the almost-periods are syndetic: `univ ⊆ F • AP∞(f, 1)` for some finite `F`.
   obtain ⟨-, F, -, hsub⟩ := hf zero_lt_one
   -- Hence `range f` lies in the finite union of unit balls around the values `f g⁻¹`, `g ∈ F`.
   refine ((isBounded_biUnion F.finite_toSet).2 fun g _ ↦
@@ -302,12 +302,12 @@ protected lemma IsUAP.isBddFun (hf : IsUAP f) : IsBddFun f := by
   rintro _ ⟨y, rfl⟩
   obtain ⟨g, hg, t, ht, hgt⟩ := Set.mem_smul.1 (hsub (Set.mem_univ y⁻¹))
   rw [smul_eq_mul] at hgt
-  -- `y = t⁻¹ * g⁻¹`, and `t` is an `ε`-almost period, so `‖f y - f g⁻¹‖ ≤ 1`.
+  -- `y = t⁻¹ * g⁻¹`, and `t` is an `ε`-almost-period, so `‖f y - f g⁻¹‖ ≤ 1`.
   have hy : t⁻¹ * g⁻¹ = y := by rw [← mul_inv_rev, hgt, inv_inv]
   refine Set.mem_biUnion hg ?_
   simpa [Metric.mem_closedBall, dist_eq_norm, hy] using ht g⁻¹
 
-/-- Almost periodicity is preserved by uniform limits along any (nontrivial) filter. -/
+/-- Almost-periodicity is preserved by uniform limits along any (nontrivial) filter. -/
 lemma IsUAP.of_tendstoUniformly {ι : Type*} {p : Filter ι} [p.NeBot] {u : ι → G → E}
     (hu : ∀ᶠ n in p, IsUAP (u n)) (h : TendstoUniformly u f p) : IsUAP f := by
   intro ε hε
@@ -386,7 +386,6 @@ protected lemma IsUAP.isAlmostConvergent [NormedSpace ℝ E] (hf : IsUAP f) :
 section Star
 variable [StarAddMonoid E] [NormedStarGroup E]
 
-/-- The almost periods are unchanged by applying an isometric `star` pointwise. -/
 @[simp] lemma uniformAP_star : AP∞(fun x ↦ star (f x), ε) = AP∞(f, ε) := by
   ext t; simp only [mem_uniformAP, ← star_sub, norm_star]
 
@@ -405,8 +404,8 @@ end NormedAddCommGroup
 section NormedRing
 variable [NormedRing R] {f g : G → R} {ε : ℝ}
 
-/-- If `t` is an `ε`-almost period of a `Bf`-bounded `f` and a `δ`-almost period of a `Bg`-bounded
-`g`, then it is a `(Bg ε + Bf δ)`-almost period of the product `f * g`. -/
+/-- If `t` is an `ε`-almost-period of a `Bf`-bounded function `f` and a `δ`-almost-period of a
+`Bg`-bounded function `g`, then it is a `Bg * ε + Bf * δ`-almost-period of `f * g`. -/
 lemma inter_subset_uniformAP_mul {Bf Bg δ : ℝ} (hfb : ∀ x, ‖f x‖ ≤ Bf) (hgb : ∀ x, ‖g x‖ ≤ Bg) :
     AP∞(f, ε) ∩ AP∞(g, δ) ⊆ AP∞(f * g, Bg * ε + Bf * δ) := by
   rintro t ⟨htf, htg⟩ x
@@ -418,8 +417,8 @@ lemma inter_subset_uniformAP_mul {Bf Bg δ : ℝ} (hfb : ∀ x, ‖f x‖ ≤ Bf
     _ ≤ Bf * δ + ε * Bg := by grw [norm_add_le, norm_mul_le, norm_mul_le, hfb, htg x, htf x, hgb x]
     _ = Bg * ε + Bf * δ := by ring
 
-/-- Quantitative form: the pointwise product of two uniformly almost periodic functions is uniformly
-almost periodic, with an explicit modulus depending on bounds `Bf`, `Bg` for `f`, `g`. -/
+/-- The product of two uniformly almost-periodic functions is uniformly almost-periodic,
+with an explicit modulus depending on the bounds on the norms of `f` and `g`. -/
 protected lemma IsUAPWith.mul {Bf Bg : ℝ} (hfb : ∀ x, ‖f x‖ ≤ Bf) (hgb : ∀ x, ‖g x‖ ≤ Bg)
     (hf : IsUAPWith K f) (hg : IsUAPWith L g) :
     IsUAPWith (fun ε ↦ K (ε / (4 * (Bf + Bg + 1))) * L (ε / (4 * (Bf + Bg + 1)))) (f * g) := by
