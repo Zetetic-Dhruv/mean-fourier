@@ -173,6 +173,16 @@ lemma IsUAPWith.comp_mulEquiv {φ : H ≃* G} (hf : IsUAPWith K f) : IsUAPWith K
   mp hf := by simpa [Function.comp_assoc] using hf.comp_mulEquiv (φ := φ.symm)
   mpr := .comp_mulEquiv
 
+/-- Postcomposing a `K`-almost-periodic function `f` with a map `φ` that is uniformly continuous
+with modulus `δ` on a set containing the range of `f` gives a `K ∘ δ`-almost-periodic function. -/
+@[to_fun (attr := fun_prop)]
+protected lemma IsUAPWith.isUniformContinuousOnWith_comp {φ : E → F} {δ : ℝ → ℝ} {S : Set E}
+    (hδ : ∀ ε > 0, 0 < δ ε) (hf : IsUAPWith K f) (hfS : ∀ x, f x ∈ S)
+    (hφ : IsUniformContinuousOnWith δ φ S) : IsUAPWith (K ∘ δ) (φ ∘ f) := by
+  simp only [IsUniformContinuousOnWith, dist_eq_norm] at hφ
+  exact fun ε hε  ↦ (hf (hδ ε hε)).subset_right fun t ht x ↦
+    hφ hε (hfS (t⁻¹ * x)) (hfS x) (mem_uniformAP.1 ht x)
+
 /-- Almost-periodicity is quantitatively preserved by uniform limits along any (nontrivial) filter.
 -/
 lemma IsUAPWith.of_tendstoUniformly {ι : Type*} {p : Filter ι} [p.NeBot] {u : ι → G → E}
@@ -306,6 +316,21 @@ protected lemma IsUAP.isBddFun (hf : IsUAP f) : IsBddFun f := by
   have hy : t⁻¹ * g⁻¹ = y := by rw [← mul_inv_rev, hgt, inv_inv]
   refine Set.mem_biUnion hg ?_
   simpa [Metric.mem_closedBall, dist_eq_norm, hy] using ht g⁻¹
+
+/-- Postcomposing a uniformly almost-periodic function with a continuous function gives a uniformly
+almost-periodic function. -/
+@[to_fun]
+protected lemma IsUAP.continuous_comp [ProperSpace E] {φ : E → F} (hf : IsUAP f)
+   (hφ : Continuous φ) : IsUAP (φ ∘ f) := by
+  obtain ⟨R, hR⟩ := (Metric.isBounded_iff_subset_closedBall 0).1 hf.isBddFun
+  obtain ⟨K, hf⟩ := hf.exists_isUAPWith
+  have huc : UniformContinuousOn φ (closedBall 0 R) :=
+    (isCompact_closedBall ..).uniformContinuousOn_of_continuous hφ.continuousOn
+  rw [Metric.uniformContinuousOn_iff] at huc
+  choose! δ hδpos hδ using huc
+  exact (hf.isUniformContinuousOnWith_comp (δ := fun ε ↦ δ ε / 2)
+    (fun ε hε ↦ by have := hδpos ε hε; positivity) (fun x ↦ hR ⟨x, rfl⟩)
+    fun ε hε a ha b hb hab ↦ (hδ ε hε a ha b hb <| by have := hδpos ε hε; linarith).le).isUAP
 
 /-- Almost-periodicity is preserved by uniform limits along any (nontrivial) filter. -/
 lemma IsUAP.of_tendstoUniformly {ι : Type*} {p : Filter ι} [p.NeBot] {u : ι → G → E}
