@@ -201,6 +201,13 @@ protected lemma IsUAPWith.isUniformContinuousOnWith_comp {φ : E → F} {δ : �
   exact fun ε hε  ↦ (hf (hδ ε hε)).subset_right fun t ht x ↦
     hφ hε (hfS (t⁻¹ * x)) (hfS x) (mem_uniformAP.1 ht x)
 
+/-- Postcomposing a `K`-almost-periodic function with a `C`-Lipschitz map gives a
+`ε ↦ K (ε / C)`-almost-periodic function. -/
+protected lemma IsUAPWith.lipschitzWith_comp {φ : E → F} {C : ℝ≥0} (hC : 0 < C) {S : Set E}
+    (hf : IsUAPWith K f) (hfS : ∀ x, f x ∈ S) (hφ : LipschitzOnWith C φ S) :
+    IsUAPWith (fun ε ↦ K (ε / C)) (φ ∘ f) :=
+  hf.isUniformContinuousOnWith_comp (fun _ε hε ↦ by positivity) hfS hφ.isUniformContinuousOnWith
+
 /-- Almost-periodicity is quantitatively preserved by uniform limits along any (nontrivial) filter.
 -/
 lemma IsUAPWith.of_tendstoUniformly {ι : Type*} {p : Filter ι} [p.NeBot] {u : ι → G → E}
