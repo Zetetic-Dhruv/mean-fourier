@@ -36,7 +36,7 @@ open scoped Finset Pointwise
 variable {𝕜 G H R E : Type*} [RCLike 𝕜] [Group G] [Group H] {K L : ℝ → ℝ} {a b x t : G} {c : 𝕜}
 
 section NormedAddCommGroup
-variable [NormedAddCommGroup E] [NormedSpace 𝕜 E] {f g : G → E} {z : E} {ε : ℝ}
+variable [NormedAddCommGroup E] {f g : G → E} {z : E} {ε : ℝ}
 
 variable (f ε) in
 /-- The uniform `ε`-almost periods of a function `f` from a group `G` to a normed space `E` are
@@ -100,7 +100,7 @@ lemma uniformAP_const (hε : 0 ≤ ε) : AP∞(Function.const G z, ε) = .univ :
 
 variable (f) in
 @[to_fun (attr := simp) uniformAP_fun_smul]
-lemma uniformAP_smul (hc : c ≠ 0) : AP∞(c • f, ε) = AP∞(f, ε / ‖c‖) := by
+lemma uniformAP_smul [NormedSpace 𝕜 E] (hc : c ≠ 0) : AP∞(c • f, ε) = AP∞(f, ε / ‖c‖) := by
   ext t; simp [mem_uniformAP, ← smul_sub, norm_smul, le_div_iff₀' (norm_pos_iff.2 hc)]
 
 variable (f) in
@@ -151,7 +151,7 @@ protected lemma IsUAPWith.add (hf : IsUAPWith K f) (hg : IsUAPWith L g) :
   grind
 
 @[to_fun]
-protected lemma IsUAPWith.smul (hf : IsUAPWith K f) (hc : c ≠ 0) :
+protected lemma IsUAPWith.smul [NormedSpace 𝕜 E] (hf : IsUAPWith K f) (hc : c ≠ 0) :
     IsUAPWith (fun ε ↦ K <| ε / ‖c‖) (c • f) := by
   rintro ε hε
   simp only [ne_eq, hc, not_false_eq_true, uniformAP_smul]
@@ -278,7 +278,7 @@ protected lemma IsUAP.add (hf : IsUAP f) (hg : IsUAP g) : IsUAP (f + g) := by
   exact (hf.add hg).isUAP
 
 @[to_fun (attr := fun_prop)]
-protected lemma IsUAP.smul (hf : IsUAP f) : IsUAP (c • f) := by
+protected lemma IsUAP.smul [NormedSpace 𝕜 E] (hf : IsUAP f) : IsUAP (c • f) := by
   obtain rfl | hc := eq_or_ne c 0
   · simp
   · obtain ⟨K, hf⟩ := hf.exists_isUAPWith
