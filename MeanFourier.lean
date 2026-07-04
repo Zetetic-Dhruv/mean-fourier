@@ -12,6 +12,7 @@ public import MeanFourier.InvtMean.Riemann
 public import MeanFourier.InvtMean.UAPExtension
 public import MeanFourier.InvtMean.VonNeumann
 public import MeanFourier.Mathlib.Algebra.BigOperators.GroupWithZero.Finset
+public import MeanFourier.Mathlib.Algebra.Group.Action.Pointwise.Set.Basic
 public import MeanFourier.Mathlib.Algebra.Group.Pointwise.Set.Basic
 public import MeanFourier.Mathlib.Algebra.Module.Equiv.Basic
 public import MeanFourier.Mathlib.Analysis.Convex.TotallyBounded
