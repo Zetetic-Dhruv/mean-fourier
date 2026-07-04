@@ -20,7 +20,7 @@ public import MeanFourier.Mathlib.Topology.MetricSpace.Pseudo.Defs
 /-!
 # Uniformly almost-periodic functions
 
-This files defines uniformly almost-periodic functions in a group following von Neumann.
+This file defines uniformly almost-periodic functions in a group following von Neumann.
 
 For a group `G` and a finite dimensional real normed space `E`, a function `f : G → E` is
 uniformly almost-periodic if for every `ε > 0` one can cover `G` with finitely many translates of
