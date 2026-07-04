@@ -8,6 +8,12 @@ import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Tactic.Group
 import MeanFourier.Mathlib.Data.Fintype.BigOperators
 
+/-!
+## TODO
+
+Protected `CovBySMul.rfl`
+-/
+
 open Metric
 open scoped Finset Pointwise NNReal ENNReal
 
@@ -57,14 +63,6 @@ lemma CovBySMul.pi {ι : Type*} {G X : ι → Type*} {s : Finset ι} [∀ i, Gro
   exact ⟨fun i ↦ if i ∈ s then g i else 1, by simp_all [apply_ite],
     fun i ↦ if i ∈ s then y i else x i, by simp_all, by ext; dsimp; split <;> simp_all⟩
 
-variable [PseudoMetricSpace M] [IsIsometricSMul Mᵐᵒᵖ M]
-
-@[simp]
-lemma covBySMul_univ_ball_one :
-    CovBySMul M K .univ (ball (1 : M) ε) ↔
-      (coveringNumber ε.toNNReal (.univ : Set M) : EReal) ≤ K := by
-  sorry
-
 end Monoid
 
 variable [Group G] {A B C : Set G} {K L : ℝ}
@@ -100,3 +98,14 @@ lemma covBySMul_mulOpposite_iff : CovBySMul Gᵐᵒᵖ K A B ↔ CovBySMul G K A
   refine ((Equiv.inv G).trans MulOpposite.opEquiv).finsetCongr.symm.exists_congr' ?_
   simp [Set.inv_subset, ← Function.comp_def _ (·⁻¹), Set.image_comp, -MulOpposite.op_inv,
     Set.image_op_smul]
+
+section PseudoMetricSpace
+variable [PseudoMetricSpace G] [IsIsometricSMul Gᵐᵒᵖ G] {K L : ℝ} {ε : ℝ}
+
+@[simp]
+lemma univ_closedBall_one (hε : 0 ≤ ε) :
+    CovBySMul G K .univ (closedBall (1 : G) ε) ↔
+      (coveringNumber ε.toNNReal (.univ : Set G) : EReal) ≤ K := by
+  sorry
+
+end PseudoMetricSpace
