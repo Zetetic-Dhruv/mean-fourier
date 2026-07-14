@@ -6,6 +6,7 @@ public import Mathlib.Topology.MetricSpace.CoveringNumbers
 
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Tactic.Group
+import MeanFourier.Mathlib.Algebra.Group.Action.Pointwise.Set.Basic
 import MeanFourier.Mathlib.Data.Fintype.BigOperators
 
 /-!
@@ -91,6 +92,35 @@ lemma CovBySMul.inter (hA : CovBySMul G K C A) (hB : CovBySMul G L C B) :
       ⟨((pair x).1⁻¹ * r)⁻¹, ?_, (pair x).1⁻¹ * x, (hp x hx).2.2.1, by group⟩,
       ⟨((pair x).2⁻¹ * r)⁻¹, ?_, (pair x).2⁻¹ * x, (hp x hx).2.2.2, by group⟩⟩, by simp⟩
       <;> grind [Set.mem_inv, inv_inv]
+
+/-- If `B` is covered by `Kᵢ`-many translates of each `Aᵢ`, then it is covered by `∏ᵢ Kᵢ`-many
+translates of `⋂ᵢ Aᵢ⁻¹ * Aᵢ`. -/
+protected lemma CovBySMul.iInter {ι : Type*} {A : ι → Set G} {s : Finset ι} {K : ι → ℝ}
+    (h : ∀ i ∈ s, CovBySMul G (K i) B (A i)) :
+    CovBySMul G (∏ i ∈ s, K i) B (⋂ i ∈ s, (A i)⁻¹ * A i) := by
+  classical
+  choose! F hFcard hF using h
+  choose! p hpF hpA using fun x hx i hi ↦ Set.mem_smul_iff_inv_smul_mem.1 (hF i hi (a := x) hx)
+  let prof (x : G) (i : ι) : G := if i ∈ s then p x i else 1
+  let T := s.pi' (fun i ↦ if i ∈ s then F i else {1}) (by simp +contextual)
+  have hmem : ∀ x ∈ B, prof x ∈ T := by grind [Finset.mem_pi']
+  let rep (φ : ι → G) : G := if h : ∃ y ∈ B, prof y = φ then h.choose else 1
+  have hrep : ∀ x ∈ B, prof (rep (prof x)) = prof x ∧ rep (prof x) ∈ B := fun x hx ↦ by
+    have hy : ∃ y ∈ B, prof y = prof x := ⟨x, hx, _root_.rfl⟩
+    rw [show rep (prof x) = hy.choose from dif_pos hy]
+    exact ⟨hy.choose_spec.2, hy.choose_spec.1⟩
+  refine ⟨T.image rep, ?_, fun x hx ↦ ?_⟩
+  · calc (#(T.image rep) : ℝ)
+        ≤ #T := by grw [Finset.card_image_le]
+      _ = ∏ i ∈ s, (#(F i) : ℝ) := by simp +contextual [T, Finset.card_pi']
+      _ ≤ ∏ i ∈ s, K i := by gcongr with i hi; exact hFcard i hi
+  · obtain ⟨hpr, hrB⟩ := hrep x hx
+    refine ⟨rep (prof x), Finset.mem_coe.2 (Finset.mem_image_of_mem _ (hmem x hx)),
+      (rep (prof x))⁻¹ * x, Set.mem_iInter₂.2 fun i hi ↦ ?_, by simp [smul_eq_mul]⟩
+    have hpr_i : p (rep (prof x)) i = p x i := by simpa [prof, hi] using congr($hpr i)
+    refine ⟨((p x i)⁻¹ * rep (prof x))⁻¹, ?_, (p x i)⁻¹ * x, hpA x hx i hi, by group⟩
+    rw [Set.mem_inv, inv_inv, ← hpr_i]
+    exact hpA _ hrB i hi
 
 /-- Covering `B` by `K` right translates of `A` is the same as covering `B⁻¹` by `K` left translates
 of `A⁻¹`. -/
