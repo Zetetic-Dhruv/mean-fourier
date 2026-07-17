@@ -7,10 +7,13 @@ module
 
 public import Mathlib.Analysis.SpecialFunctions.Log.Basic
 public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Order.Interval.Finset.Nat
 public import Mathlib.Order.Interval.Set.Basic
 public import MeanFourier.Mathlib.Data.Set.Basic
 public import MeanFourier.Mathlib.Data.Set.Card
 
+import Mathlib.Combinatorics.SetFamily.Shatter
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Simproc.ExistsAndEq
 import Mathlib.Order.Lattice.Nat
@@ -104,6 +107,8 @@ open scoped Finset
 
 lemma shatters_iff_le_ncard_image_inter : Shatters 𝒜 A ↔ 2 ^ A.ncard ≤ ((A ∩ ·) '' 𝒜).ncard := by
   sorry
+  -- this might need `A.Finite`? For infinite `A` we have `A.ncard = 0`, so the RHS only
+  -- says the image is nonempty, but say `𝒜 = {∅}` does not shatter an infinite `A`.
 
 variable (n 𝒜) in
 /-- The growth of a set family is the maximum number of sets it cuts out from any set of size at
@@ -171,6 +176,107 @@ lemma HasVCDimLE.anti (hℬ𝒜 : ℬ ⊆ 𝒜) (hd : HasVCDimLE d 𝒜) : HasVC
 @[gcongr]
 lemma HasVCDimLE.mono (hd : d₁ ≤ d₂) : HasVCDimLE d₁ 𝒜 → HasVCDimLE d₂ 𝒜 := by
   grw [HasVCDimLE, HasVCDimLE, hd]; exact id
+
+/-!
+# Sauer Shelah
+
+This adds the vcGrowth bound for set families of finite VC dimension
+-/
+
+open scoped Classical in
+private noncomputable def traceOf {A : Set α} (hA : A.Finite) (t : Set α) :
+    Finset ↥hA.toFinset :=
+  Finset.univ.filter fun x ↦ ↑x ∈ t
+
+private lemma mem_traceOf {hA : A.Finite} {t : Set α} {x : ↥hA.toFinset} :
+    x ∈ traceOf hA t ↔ ↑x ∈ t := by
+  simp [traceOf]
+
+open scoped Classical in
+private noncomputable def traceFinset (𝒜 : Set (Set α)) (hA : A.Finite) :
+    Finset (Finset ↥hA.toFinset) :=
+  (finite_image_inter (𝒜 := 𝒜) hA).toFinset.image (traceOf hA)
+
+private lemma mem_traceFinset {hA : A.Finite} {u : Finset ↥hA.toFinset} :
+    u ∈ traceFinset 𝒜 hA ↔ ∃ C ∈ 𝒜, u = traceOf hA (A ∩ C) := by
+  simp only [traceFinset, Finset.mem_image, Set.Finite.mem_toFinset, Set.mem_image]
+  constructor
+  · rintro ⟨t, ⟨C, hC, rfl⟩, rfl⟩
+    exact ⟨C, hC, rfl⟩
+  · rintro ⟨C, hC, rfl⟩
+    exact ⟨A ∩ C, ⟨C, hC, rfl⟩, rfl⟩
+
+private lemma card_traceFinset (𝒜 : Set (Set α)) (hA : A.Finite) :
+    (traceFinset 𝒜 hA).card = ((A ∩ ·) '' 𝒜).ncard := by
+  classical
+  rw [Set.ncard_eq_toFinset_card _ (finite_image_inter (𝒜 := 𝒜) hA), traceFinset]
+  refine Finset.card_image_of_injOn fun t ht t' ht' h ↦ ?_
+  rw [Finset.mem_coe, Set.Finite.mem_toFinset] at ht ht'
+  obtain ⟨C, -, rfl⟩ := ht
+  obtain ⟨C', -, rfl⟩ := ht'
+  ext x
+  constructor
+  · intro hx
+    have hx' := Finset.ext_iff.1 h ⟨x, hA.mem_toFinset.2 hx.1⟩
+    simp only [mem_traceOf] at hx'
+    exact hx'.1 hx
+  · intro hx
+    have hx' := Finset.ext_iff.1 h ⟨x, hA.mem_toFinset.2 hx.1⟩
+    simp only [mem_traceOf] at hx'
+    exact hx'.2 hx
+
+open scoped Classical in
+private lemma shatters_of_traceFinset_shatters {hA : A.Finite} {T : Finset ↥hA.toFinset}
+    (hT : (traceFinset 𝒜 hA).Shatters T) :
+    Shatters 𝒜 (Subtype.val '' (T : Set ↥hA.toFinset)) := by
+  intro B hBV
+  obtain ⟨u, hu, hTu⟩ := hT (Finset.filter_subset (fun x ↦ ↑x ∈ B) T)
+  obtain ⟨C, hC, rfl⟩ := mem_traceFinset.1 hu
+  refine ⟨C, hC, ?_⟩
+  ext x
+  simp only [Set.inf_eq_inter, Set.mem_inter_iff, Set.mem_image, Finset.mem_coe]
+  constructor
+  · rintro ⟨⟨y, hyT, rfl⟩, hxC⟩
+    have hyu : y ∈ T ∩ traceOf hA (A ∩ C) :=
+      Finset.mem_inter.2 ⟨hyT, mem_traceOf.2 ⟨hA.mem_toFinset.1 y.2, hxC⟩⟩
+    rw [hTu] at hyu
+    exact (Finset.mem_filter.1 hyu).2
+  · intro hxB
+    obtain ⟨y, hyT, rfl⟩ : ∃ y ∈ T, ↑y = x := by
+      obtain ⟨y, hyT, hyx⟩ := hBV hxB
+      exact ⟨y, Finset.mem_coe.1 hyT, hyx⟩
+    have hyu : y ∈ T.filter fun z ↦ ↑z ∈ B := Finset.mem_filter.2 ⟨hyT, hxB⟩
+    rw [← hTu] at hyu
+    have hy := mem_traceOf.1 (Finset.mem_inter.1 hyu).2
+    exact ⟨⟨y, hyT, rfl⟩, hy.2⟩
+
+open scoped Classical in
+private lemma vcDim_traceFinset_le (h𝒜 : HasVCDimLE d 𝒜) (hA : A.Finite) :
+    (traceFinset 𝒜 hA).vcDim ≤ d := by
+  apply Finset.sup_le
+  intro T hT
+  rw [Finset.mem_shatterer] at hT
+  have h := h𝒜 (T.finite_toSet.image _) (shatters_of_traceFinset_shatters hT)
+  rwa [Set.ncard_image_of_injective _ Subtype.val_injective, Set.ncard_coe_finset] at h
+
+lemma HasVCDimLE.ncard_image_inter_le (h𝒜 : HasVCDimLE d 𝒜) (hA : A.Finite)
+    (hAn : A.ncard ≤ n) :
+    ((A ∩ ·) '' 𝒜).ncard ≤ ∑ k ∈ Finset.Iic d, n.choose k := by
+  classical
+  calc ((A ∩ ·) '' 𝒜).ncard
+      = (traceFinset 𝒜 hA).card := (card_traceFinset 𝒜 hA).symm
+    _ ≤ (traceFinset 𝒜 hA).shatterer.card := Finset.card_le_card_shatterer _
+    _ ≤ ∑ k ∈ Finset.Iic (traceFinset 𝒜 hA).vcDim, (Fintype.card ↥hA.toFinset).choose k :=
+        Finset.card_shatterer_le_sum_vcDim
+    _ ≤ ∑ k ∈ Finset.Iic d, (Fintype.card ↥hA.toFinset).choose k :=
+        Finset.sum_le_sum_of_subset (Finset.Iic_subset_Iic.2 (vcDim_traceFinset_le h𝒜 hA))
+    _ ≤ ∑ k ∈ Finset.Iic d, n.choose k :=
+        Finset.sum_le_sum fun k _ ↦ Nat.choose_le_choose k
+          (by rw [Fintype.card_coe, ← Set.ncard_eq_toFinset_card _ hA]; exact hAn)
+
+lemma HasVCDimLE.vcGrowth_le (h𝒜 : HasVCDimLE d 𝒜) :
+    vcGrowth n 𝒜 ≤ ∑ k ∈ Finset.Iic d, n.choose k :=
+  vcGrowth_le_iff.2 fun _A hA hAn ↦ h𝒜.ncard_image_inter_le hA hAn
 
 variable [Infinite α]
 
