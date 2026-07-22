@@ -134,6 +134,7 @@ lemma mem_chordSet_iff_norm_width :
 
 @[simp] lemma one_mem_chordSet : 1 ∈ B.chordSet := by simp [mem_chordSet_iff_nnnorm_width]
 
+set_option backward.isDefEq.respectTransparency false in
 @[simp] lemma inv_mem_chordSet : x⁻¹ ∈ B.chordSet ↔ x ∈ B.chordSet := by
   refine forall_congr' fun ψ ↦ ?_
   rw [← nnnorm_map ContinuousLinearMap.adjoint]
