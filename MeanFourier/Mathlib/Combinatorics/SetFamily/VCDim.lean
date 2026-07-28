@@ -105,10 +105,9 @@ lemma Shatters.subset (h : A ⊆ B) (hB : Shatters 𝒜 B) : Shatters 𝒜 A := 
 
 open scoped Finset
 
-lemma shatters_iff_le_ncard_image_inter : Shatters 𝒜 A ↔ 2 ^ A.ncard ≤ ((A ∩ ·) '' 𝒜).ncard := by
+lemma shatters_iff_le_ncard_image_inter (hA : A.Finite) :
+    Shatters 𝒜 A ↔ 2 ^ A.ncard ≤ ((A ∩ ·) '' 𝒜).ncard := by
   sorry
-  -- this might need `A.Finite`? For infinite `A` we have `A.ncard = 0`, so the RHS only
-  -- says the image is nonempty, but say `𝒜 = {∅}` does not shatter an infinite `A`.
 
 variable (n 𝒜) in
 /-- The growth of a set family is the maximum number of sets it cuts out from any set of size at
