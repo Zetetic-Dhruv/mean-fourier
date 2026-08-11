@@ -339,13 +339,28 @@ private lemma singleton_image_splitPoints_subset :
   exact ⟨Set.singleton_subset_iff.2 hxA, shatters_singleton.2 ⟨hxin, hxout⟩⟩
 
 /-- A family with infinitely many traces on `A` shatters infinitely many subsets of `A`, over
-any `α` and for any `𝒜`. This is the infinite branch of
-`encard_image_inter_le_encard_shatters`, where it makes both sides `⊤`. -/
+any `α` and for any `𝒜`. -/
 lemma infinite_setOf_shatters (h : ((A ∩ ·) '' 𝒜).Infinite) :
     {B | B ⊆ A ∧ Shatters 𝒜 B}.Infinite :=
   Set.Infinite.mono singleton_image_splitPoints_subset <|
     Set.Infinite.image Set.singleton_injective.injOn fun hfin ↦
       h (finite_image_inter_of_finite_splitPoints hfin)
+
+/-- The points of `A` at which `𝒜` splits are exactly those whose singleton `𝒜` shatters. -/
+private lemma splitPoints_eq_setOf_shatters_singleton :
+    splitPoints 𝒜 A = {x ∈ A | Shatters 𝒜 {x}} := by
+  ext x; simp only [splitPoints, Set.mem_setOf_eq, shatters_singleton]
+
+/-- A trace is determined by its restriction to the points whose singleton is shattered, so the
+traces on `A` number at most `2 ^ k` with `k` the number of such points. No hypothesis on `𝒜`. -/
+lemma ncard_image_inter_le_two_pow_ncard_setOf_shatters_singleton
+    (h : {x ∈ A | Shatters 𝒜 {x}}.Finite) :
+    ((A ∩ ·) '' 𝒜).ncard ≤ 2 ^ {x ∈ A | Shatters 𝒜 {x}}.ncard := by
+  rw [← Set.ncard_powerset _ h]
+  refine Set.ncard_le_ncard_of_injOn (· ∩ {x ∈ A | Shatters 𝒜 {x}})
+    (fun t _ ↦ Set.inter_subset_right) ?_ (h.powerset)
+  rw [← splitPoints_eq_setOf_shatters_singleton]
+  exact injOn_inter_splitPoints
 
 /-- **Pajor's inequality**: the traces of `𝒜` on `A` are at most
 as many as the subsets of `A` shattered by `𝒜`. -/
@@ -357,9 +372,7 @@ lemma encard_image_inter_le_encard_shatters :
     exact le_top
 
 /-- The traces of `𝒜` on `A` that are determined by finitely many points are at most as many as
-the shattered subsets: the restriction of `encard_image_inter_le_encard_shatters` to the
-determined traces. Its cardinal-valued sharpening, which is genuinely stronger than the `ℕ∞`
-statement, is `mk_determined_le_mk_shatters`. -/
+the shattered subsets -/
 lemma encard_determined_le_encard_shatters :
     {t ∈ (A ∩ ·) '' 𝒜 | ∃ F : Set α, F.Finite ∧
       ∀ t' ∈ (A ∩ ·) '' 𝒜, t' ∩ F = t ∩ F → t' = t}.encard ≤
@@ -428,6 +441,23 @@ lemma HasVCDimLE.ncard_image_inter_le (h𝒜 : HasVCDimLE d 𝒜) (hA : A.Finite
     _ = ∑ k ∈ .Iic d, A.ncard.choose k := ncard_setOf_ncard_le hA d
     _ ≤ ∑ k ∈ .Iic d, n.choose k := Finset.sum_le_sum fun k _ ↦ Nat.choose_le_choose k hAn
 
+/-- The extraction form of the Sauer-Shelah inequality: a family tracing more than
+`∑ k ≤ d, n.choose k` sets on a finite `A` of size at most `n` shatters a subset of `A` of size
+greater than `d`. -/
+lemma exists_shatters_of_lt_ncard_image_inter (hA : A.Finite) (hAn : A.ncard ≤ n)
+    (h : ∑ k ∈ .Iic d, n.choose k < ((A ∩ ·) '' 𝒜).ncard) :
+    ∃ B ⊆ A, d < B.ncard ∧ Shatters 𝒜 B := by
+  by_contra hc
+  push Not at hc
+  refine absurd h (not_lt.2 ?_)
+  calc ((A ∩ ·) '' 𝒜).ncard
+      ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.ncard := ncard_image_inter_le_ncard_setOf_shatters hA
+    _ ≤ {B | B ⊆ A ∧ B.ncard ≤ d}.ncard :=
+        Set.ncard_le_ncard (fun _B hB ↦ ⟨hB.1, not_lt.1 fun hlt ↦ hc _ hB.1 hlt hB.2⟩)
+          (finite_setOf_subset_and hA _)
+    _ = ∑ k ∈ .Iic d, A.ncard.choose k := ncard_setOf_ncard_le hA d
+    _ ≤ ∑ k ∈ .Iic d, n.choose k := Finset.sum_le_sum fun k _ ↦ Nat.choose_le_choose k hAn
+
 /-- `HasVCDimLE.ncard_image_inter_le` read off every finite set of size at most `n` at once:
 the growth function of a family of VC dimension at most `d` is at most `∑ k ≤ d, n.choose k`. -/
 lemma HasVCDimLE.vcGrowth_le (h𝒜 : HasVCDimLE d 𝒜) :
@@ -435,7 +465,7 @@ lemma HasVCDimLE.vcGrowth_le (h𝒜 : HasVCDimLE d 𝒜) :
   vcGrowth_le_iff.2 fun _A hA hAn ↦ h𝒜.ncard_image_inter_le hA hAn
 
 /-- `HasVCDimLE.vcGrowth_le` with the sum indexed by `Finset.range (d + 1)` in place of
-`Finset.Iic d`, which is the form the bound of `HasVCDimLE.vcGrowth_le_exp` consumes. -/
+`Finset.Iic d` -/
 private lemma HasVCDimLE.vcGrowth_le_sum_range (h𝒜 : HasVCDimLE d 𝒜) :
     vcGrowth n 𝒜 ≤ ∑ k ∈ Finset.range (d + 1), n.choose k := by
   rw [Nat.range_succ_eq_Iic]; exact h𝒜.vcGrowth_le
