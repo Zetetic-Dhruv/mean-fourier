@@ -200,6 +200,119 @@ lemma HasVCDimLE.anti (hℬ𝒜 : ℬ ⊆ 𝒜) (hd : HasVCDimLE d 𝒜) : HasVC
 lemma HasVCDimLE.mono (hd : d₁ ≤ d₂) : HasVCDimLE d₁ 𝒜 → HasVCDimLE d₂ 𝒜 := by
   grw [HasVCDimLE, HasVCDimLE, hd]; exact id
 
+private lemma trace_sep_union {x : α} :
+    (A ∩ ·) '' {C ∈ 𝒜 | x ∉ C} ∪ (A ∩ ·) '' {C ∈ 𝒜 | x ∈ C} = (A ∩ ·) '' 𝒜 := by
+  rw [← Set.image_union]; congr 1; ext C; grind
+
+private lemma trace_sep_disjoint {x : α} (hxA : x ∈ A) :
+    Disjoint ((A ∩ ·) '' {C ∈ 𝒜 | x ∉ C}) ((A ∩ ·) '' {C ∈ 𝒜 | x ∈ C}) := by
+  rw [Set.disjoint_left]
+  rintro t ⟨C, hC, rfl⟩ ⟨C', hC', htC⟩
+  exact hC.2 ((Set.ext_iff.1 htC x).1 ⟨hxA, hC'.2⟩).2
+
+/-- A family whose members all avoid `x` shatters only sets avoiding `x`. -/
+private lemma notMem_of_forall_notMem {x : α} (h𝒜 : ∀ C ∈ 𝒜, x ∉ C) (hB : Shatters 𝒜 B) :
+    x ∉ B :=
+  let ⟨C, hC, hBC⟩ := hB.exists_ge; fun hxB ↦ h𝒜 C hC (hBC hxB)
+
+private lemma notMem_of_shatters_sep_left {x : α} (h : Shatters {C ∈ 𝒜 | x ∉ C} B) : x ∉ B :=
+  notMem_of_forall_notMem (fun _C hC ↦ hC.2) h
+
+private lemma notMem_of_shatters_sep_right {x : α} (h : Shatters {C ∈ 𝒜 | x ∈ C} B) : x ∉ B :=
+  notMem_of_forall_notMem (𝒜 := (·ᶜ) ⁻¹' {C ∈ 𝒜 | x ∈ C}) (fun _C hC ↦ fun hx ↦ hC.2 hx)
+    h.preimage_compl
+
+/-- If `B` is shattered both by the members of `𝒜` avoiding `x` and by the members of `𝒜`
+containing `x`, then `𝒜` shatters `insert x B`. This is the exchange step in the proof of
+Pajor's inequality. -/
+lemma Shatters.insert {x : α} (h₀ : Shatters {C ∈ 𝒜 | x ∉ C} B)
+    (h₁ : Shatters {C ∈ 𝒜 | x ∈ C} B) : Shatters 𝒜 (insert x B) :=
+  Shatters.of_forall_subset fun B' hB' ↦ by
+    by_cases hxB' : x ∈ B'
+    · obtain ⟨C, hC, hBC⟩ := h₁.exists_inter_eq
+        (show B' \ {x} ⊆ B from fun y hy ↦ (hB' hy.1).resolve_left hy.2)
+      exact ⟨C, hC.1, by rw [Set.insert_inter_of_mem hC.2, hBC, Set.insert_sdiff_singleton,
+        Set.insert_eq_of_mem hxB']⟩
+    · obtain ⟨C, hC, hBC⟩ := h₀.exists_inter_eq
+        (show B' ⊆ B from fun y hy ↦ (hB' hy).resolve_left fun (e : y = x) ↦ hxB' (e ▸ hy))
+      exact ⟨C, hC.1, by rw [Set.insert_inter_of_notMem hC.2, hBC]⟩
+
+/-- A point of `A` witnessing that one trace fails to contain another is a point at which `𝒜`
+splits. -/
+private lemma exists_splitter_of_not_subset {C C' : Set α} (hC : C ∈ 𝒜) (hC' : C' ∈ 𝒜)
+    (h : ¬A ∩ C ⊆ A ∩ C') : ∃ x ∈ A, (∃ D ∈ 𝒜, x ∈ D) ∧ ∃ D ∈ 𝒜, x ∉ D := by
+  obtain ⟨y, ⟨hyA, hyC⟩, hy'⟩ := Set.not_subset.1 h
+  exact ⟨y, hyA, ⟨C, hC, hyC⟩, C', hC', fun hc ↦ hy' ⟨hyA, hc⟩⟩
+
+private lemma exists_splitter (h : ((A ∩ ·) '' 𝒜).Nontrivial) :
+    ∃ x ∈ A, (∃ C ∈ 𝒜, x ∈ C) ∧ ∃ C ∈ 𝒜, x ∉ C := by
+  obtain ⟨t₁, ⟨C₁, hC₁, rfl⟩, t₂, ⟨C₂, hC₂, rfl⟩, hne⟩ := h
+  obtain h' | h' : ¬A ∩ C₁ ⊆ A ∩ C₂ ∨ ¬A ∩ C₂ ⊆ A ∩ C₁ := by grind [Set.Subset.antisymm]
+  exacts [exists_splitter_of_not_subset hC₁ hC₂ h', exists_splitter_of_not_subset hC₂ hC₁ h']
+
+/-- Inserting a fixed element is injective on the sets avoiding it: the element can be removed
+again, recovering the argument. -/
+private lemma insert_injOn_notMem (x : α) : Set.InjOn (insert x) {B : Set α | x ∉ B} :=
+  fun _B hB _B' hB' h ↦ by
+    rw [← Set.insert_sdiff_self_of_notMem hB, h, Set.insert_sdiff_self_of_notMem hB']
+
+/-- A family whose members all avoid `x` is disjoint from any family of sets containing `x`. -/
+private lemma disjoint_image_insert {x : α} {𝒮 𝒯 : Set (Set α)} (h𝒮 : ∀ B ∈ 𝒮, x ∉ B) :
+    Disjoint 𝒮 (insert x '' 𝒯) := by
+  rw [Set.disjoint_left]
+  rintro B hB ⟨B', -, rfl⟩
+  exact h𝒮 _ hB (Set.mem_insert x B')
+
+private lemma pajor_encard_aux :
+    ∀ N (𝒜 : Set (Set α)), ((A ∩ ·) '' 𝒜).Finite → ((A ∩ ·) '' 𝒜).ncard ≤ N →
+      ((A ∩ ·) '' 𝒜).encard ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.encard := by
+  intro N
+  induction N with
+  | zero =>
+    intro 𝒜 hfin hN
+    rw [(Set.ncard_eq_zero hfin).1 (Nat.le_zero.1 hN), Set.encard_empty]
+    exact zero_le
+  | succ N ih =>
+    intro 𝒜 hfin hN
+    obtain hsub | hnt := Set.subsingleton_or_nontrivial ((A ∩ ·) '' 𝒜)
+    · obtain hemp | ⟨t, ht⟩ := ((A ∩ ·) '' 𝒜).eq_empty_or_nonempty
+      · rw [hemp, Set.encard_empty]
+        exact zero_le
+      · obtain ⟨C, hC, -⟩ := id ht
+        rw [Set.eq_singleton_iff_unique_mem.2 ⟨ht, fun _ ht' ↦ hsub ht' ht⟩, Set.encard_singleton]
+        exact Set.one_le_encard_iff_nonempty.2 ⟨∅, Set.empty_subset A, shatters_bot.2 ⟨C, hC⟩⟩
+    · obtain ⟨x, hxA, ⟨C₁, hC₁, hxC₁⟩, C₂, hC₂, hxC₂⟩ := exists_splitter hnt
+      have hfin₀ : ((A ∩ ·) '' {C ∈ 𝒜 | x ∉ C}).Finite :=
+        hfin.subset (Set.image_mono (Set.sep_subset _ _))
+      have hfin₁ : ((A ∩ ·) '' {C ∈ 𝒜 | x ∈ C}).Finite :=
+        hfin.subset (Set.image_mono (Set.sep_subset _ _))
+      have hpos₀ : 0 < ((A ∩ ·) '' {C ∈ 𝒜 | x ∉ C}).ncard :=
+        (Set.ncard_pos hfin₀).2 ⟨A ∩ C₂, C₂, ⟨hC₂, hxC₂⟩, rfl⟩
+      have hpos₁ : 0 < ((A ∩ ·) '' {C ∈ 𝒜 | x ∈ C}).ncard :=
+        (Set.ncard_pos hfin₁).2 ⟨A ∩ C₁, C₁, ⟨hC₁, hxC₁⟩, rfl⟩
+      rw [← trace_sep_union (x := x), Set.ncard_union_eq (trace_sep_disjoint hxA) hfin₀ hfin₁]
+        at hN
+      set 𝒮₀ := {B | B ⊆ A ∧ Shatters {C ∈ 𝒜 | x ∉ C} B}
+      set 𝒮₁ := {B | B ⊆ A ∧ Shatters {C ∈ 𝒜 | x ∈ C} B}
+      calc ((A ∩ ·) '' 𝒜).encard
+          = ((A ∩ ·) '' {C ∈ 𝒜 | x ∉ C}).encard + ((A ∩ ·) '' {C ∈ 𝒜 | x ∈ C}).encard := by
+            rw [← trace_sep_union (x := x), Set.encard_union_eq (trace_sep_disjoint hxA)]
+        _ ≤ 𝒮₀.encard + 𝒮₁.encard := add_le_add (ih _ hfin₀ (by lia)) (ih _ hfin₁ (by lia))
+        _ = (𝒮₀ ∪ 𝒮₁).encard + (𝒮₀ ∩ 𝒮₁).encard :=
+            (Set.encard_union_add_encard_inter 𝒮₀ 𝒮₁).symm
+        _ = (𝒮₀ ∪ 𝒮₁).encard + (insert x '' (𝒮₀ ∩ 𝒮₁)).encard := by
+            rw [((insert_injOn_notMem x).mono
+              fun B hB ↦ notMem_of_shatters_sep_left hB.1.2).encard_image]
+        _ = ((𝒮₀ ∪ 𝒮₁) ∪ insert x '' (𝒮₀ ∩ 𝒮₁)).encard :=
+            (Set.encard_union_eq <| disjoint_image_insert <| by
+              rintro B (⟨-, hB⟩ | ⟨-, hB⟩)
+              exacts [notMem_of_shatters_sep_left hB, notMem_of_shatters_sep_right hB]).symm
+        _ ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.encard := Set.encard_le_encard <| by
+            rintro B ((⟨hBA, hB⟩ | ⟨hBA, hB⟩) | ⟨B', ⟨⟨hB'A, hB'₀⟩, -, hB'₁⟩, rfl⟩)
+            · exact ⟨hBA, hB.mono (Set.sep_subset _ _)⟩
+            · exact ⟨hBA, hB.mono (Set.sep_subset _ _)⟩
+            · exact ⟨Set.insert_subset_iff.2 ⟨hxA, hB'A⟩, hB'₀.insert hB'₁⟩
+
 variable (𝒜 A) in
 /-- The elements of `A` at which `𝒜` splits: some member of `𝒜` contains them and some does
 not. These are the elements whose singleton `𝒜` shatters. -/
@@ -237,7 +350,21 @@ lemma infinite_setOf_shatters (h : ((A ∩ ·) '' 𝒜).Infinite) :
 /-- **Pajor's inequality**: the traces of `𝒜` on `A` are at most
 as many as the subsets of `A` shattered by `𝒜`. -/
 lemma encard_image_inter_le_encard_shatters :
-    ((A ∩ ·) '' 𝒜).encard ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.encard := sorry
+    ((A ∩ ·) '' 𝒜).encard ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.encard := by
+  by_cases h : ((A ∩ ·) '' 𝒜).Finite
+  · exact pajor_encard_aux _ 𝒜 h le_rfl
+  · rw [(infinite_setOf_shatters h).encard_eq]
+    exact le_top
+
+/-- The traces of `𝒜` on `A` that are determined by finitely many points are at most as many as
+the shattered subsets: the restriction of `encard_image_inter_le_encard_shatters` to the
+determined traces. Its cardinal-valued sharpening, which is genuinely stronger than the `ℕ∞`
+statement, is `mk_determined_le_mk_shatters`. -/
+lemma encard_determined_le_encard_shatters :
+    {t ∈ (A ∩ ·) '' 𝒜 | ∃ F : Set α, F.Finite ∧
+      ∀ t' ∈ (A ∩ ·) '' 𝒜, t' ∩ F = t ∩ F → t' = t}.encard ≤
+      {B | B ⊆ A ∧ Shatters 𝒜 B}.encard :=
+  (Set.encard_le_encard (Set.sep_subset _ _)).trans encard_image_inter_le_encard_shatters
 
 lemma finite_setOf_subset_and (hA : A.Finite) (p : Set α → Prop) :
     {B | B ⊆ A ∧ p B}.Finite := hA.finite_subsets.subset fun _B hB ↦ hB.1
