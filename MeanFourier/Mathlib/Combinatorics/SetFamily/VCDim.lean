@@ -353,7 +353,7 @@ private lemma splitPoints_eq_setOf_shatters_singleton :
 
 /-- A trace is determined by its restriction to the points whose singleton is shattered, so the
 traces on `A` number at most `2 ^ k` with `k` the number of such points. No hypothesis on `𝒜`. -/
-lemma ncard_image_inter_le_two_pow_ncard_setOf_shatters_singleton
+lemma ncard_image_inter_le_two_pow_ncard_shatters_singleton
     (h : {x ∈ A | Shatters 𝒜 {x}}.Finite) :
     ((A ∩ ·) '' 𝒜).ncard ≤ 2 ^ {x ∈ A | Shatters 𝒜 {x}}.ncard := by
   rw [← Set.ncard_powerset _ h]
@@ -361,6 +361,11 @@ lemma ncard_image_inter_le_two_pow_ncard_setOf_shatters_singleton
     (fun t _ ↦ Set.inter_subset_right) ?_ (h.powerset)
   rw [← splitPoints_eq_setOf_shatters_singleton]
   exact injOn_inter_splitPoints
+
+/-- The subsets of `A` shattered by `𝒜` grow with `𝒜`. -/
+lemma setOf_shatters_mono (h : 𝒜 ⊆ ℬ) :
+    {B | B ⊆ A ∧ Shatters 𝒜 B} ⊆ {B | B ⊆ A ∧ Shatters ℬ B} :=
+  fun _B hB ↦ ⟨hB.1, hB.2.mono h⟩
 
 /-- **Pajor's inequality**: the traces of `𝒜` on `A` are at most
 as many as the subsets of `A` shattered by `𝒜`. -/
@@ -383,7 +388,7 @@ lemma finite_setOf_subset_and (hA : A.Finite) (p : Set α → Prop) :
     {B | B ⊆ A ∧ p B}.Finite := hA.finite_subsets.subset fun _B hB ↦ hB.1
 
 /-- The finite form of **Pajor's inequality**. -/
-lemma ncard_image_inter_le_ncard_setOf_shatters (hA : A.Finite) :
+lemma ncard_image_inter_le_ncard_shatters (hA : A.Finite) :
     ((A ∩ ·) '' 𝒜).ncard ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.ncard :=
   (Set.encard_le_coe_iff_finite_ncard_le.1 <| encard_image_inter_le_encard_shatters.trans_eq
     (finite_setOf_subset_and hA _).cast_ncard_eq.symm).2
@@ -398,6 +403,10 @@ lemma HasVCDimLE.finite_of_shatters (h𝒜 : HasVCDimLE d 𝒜) (hB : Shatters �
 /-- A family of VC dimension at most `d` shatters only sets of size at most `d` -/
 lemma HasVCDimLE.ncard_le_of_shatters (h𝒜 : HasVCDimLE d 𝒜) (hB : Shatters 𝒜 B) :
     B.ncard ≤ d := h𝒜 (h𝒜.finite_of_shatters hB) hB
+
+-- the `A.Finite` in `HasVCDimLE` looks redundant now: it only constrains sets already known
+-- finite, but `finite_of_shatters` says nothing infinite is shattered anyway, so `HasVCDimLE d 𝒜`
+-- should be equivalent to `∀ A, Shatters 𝒜 A → A.ncard ≤ d`.
 
 private lemma setOf_subset_and_ncard_le_zero (hA : A.Finite) :
     {B | B ⊆ A ∧ B.ncard ≤ 0} = {∅} := by
@@ -434,7 +443,7 @@ lemma HasVCDimLE.ncard_image_inter_le (h𝒜 : HasVCDimLE d 𝒜) (hA : A.Finite
     (hAn : A.ncard ≤ n) :
     ((A ∩ ·) '' 𝒜).ncard ≤ ∑ k ∈ .Iic d, n.choose k :=
   calc ((A ∩ ·) '' 𝒜).ncard
-      ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.ncard := ncard_image_inter_le_ncard_setOf_shatters hA
+      ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.ncard := ncard_image_inter_le_ncard_shatters hA
     _ ≤ {B | B ⊆ A ∧ B.ncard ≤ d}.ncard :=
         Set.ncard_le_ncard (fun _B hB ↦ ⟨hB.1, h𝒜.ncard_le_of_shatters hB.2⟩)
           (finite_setOf_subset_and hA _)
@@ -451,7 +460,7 @@ lemma exists_shatters_of_lt_ncard_image_inter (hA : A.Finite) (hAn : A.ncard ≤
   push Not at hc
   refine absurd h (not_lt.2 ?_)
   calc ((A ∩ ·) '' 𝒜).ncard
-      ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.ncard := ncard_image_inter_le_ncard_setOf_shatters hA
+      ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.ncard := ncard_image_inter_le_ncard_shatters hA
     _ ≤ {B | B ⊆ A ∧ B.ncard ≤ d}.ncard :=
         Set.ncard_le_ncard (fun _B hB ↦ ⟨hB.1, not_lt.1 fun hlt ↦ hc _ hB.1 hlt hB.2⟩)
           (finite_setOf_subset_and hA _)
