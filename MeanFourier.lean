@@ -25,8 +25,8 @@ public import MeanFourier.Mathlib.Combinatorics.SetFamily.HausslerPacking
 public import MeanFourier.Mathlib.Combinatorics.SetFamily.VCDim
 public import MeanFourier.Mathlib.Data.ENNReal.BigOperators
 public import MeanFourier.Mathlib.Data.ENNReal.Operations
-public import MeanFourier.Mathlib.Data.ENat.Basic
 public import MeanFourier.Mathlib.Data.ENat.BigOperators
+public import MeanFourier.Mathlib.Data.ENat.Monoid
 public import MeanFourier.Mathlib.Data.EReal.Basic
 public import MeanFourier.Mathlib.Data.Finset.Pi
 public import MeanFourier.Mathlib.Data.Fintype.BigOperators
@@ -36,7 +36,6 @@ public import MeanFourier.Mathlib.Data.Set.Basic
 public import MeanFourier.Mathlib.Data.Set.Card
 public import MeanFourier.Mathlib.Data.Set.Prod
 public import MeanFourier.Mathlib.MeasureTheory.Group.FoelnerFilter
-public import MeanFourier.Mathlib.MeasureTheory.Integral.Average
 public import MeanFourier.Mathlib.Topology.Algebra.Module.Equiv
 public import MeanFourier.Mathlib.Topology.Bornology.Basic
 public import MeanFourier.Mathlib.Topology.MetricSpace.Cover

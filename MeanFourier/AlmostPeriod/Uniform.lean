@@ -10,7 +10,7 @@ public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import MeanFourier.AlmostConvergent
 public import MeanFourier.Mathlib.Analysis.Normed.Group.Bounded
 public import MeanFourier.Mathlib.Combinatorics.Additive.CovBySMul
-public import MeanFourier.Mathlib.Data.ENat.Basic
+public import MeanFourier.Mathlib.Data.ENat.Monoid
 public import MeanFourier.Mathlib.Data.EReal.Basic
 public import MeanFourier.Mathlib.Data.Real.ENatENNReal
 public import MeanFourier.Mathlib.Topology.Bornology.Basic
