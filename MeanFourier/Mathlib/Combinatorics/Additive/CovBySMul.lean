@@ -107,7 +107,7 @@ protected lemma CovBySMul.iInter {ι : Type*} {A : ι → Set G} {s : Finset ι}
   let rep (φ : ι → G) : G := if h : ∃ y ∈ B, prof y = φ then h.choose else 1
   have hrep : ∀ x ∈ B, prof (rep (prof x)) = prof x ∧ rep (prof x) ∈ B := fun x hx ↦ by
     have hy : ∃ y ∈ B, prof y = prof x := ⟨x, hx, _root_.rfl⟩
-    rw [show rep (prof x) = hy.choose from dif_pos hy]
+    rw [show rep (prof x) = hy.choose from dite_eq_left hy]
     exact ⟨hy.choose_spec.2, hy.choose_spec.1⟩
   refine ⟨T.image rep, ?_, fun x hx ↦ ?_⟩
   · calc (#(T.image rep) : ℝ)

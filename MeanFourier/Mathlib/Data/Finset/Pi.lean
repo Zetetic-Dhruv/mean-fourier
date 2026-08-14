@@ -35,7 +35,7 @@ lemma pi'_of_forall_singleton [DecidableEq ι] (x : ∀ i ∉ s, α i) (ht : ∀
       fun f g hfg ↦ by ext i hi; simpa [hi] using congr($hfg i)⟩ := by
   ext y
   unfold pi'
-  rw [dif_neg (by simp +contextual [ht])]
+  rw [dite_eq_right (by simp +contextual [ht])]
   simp only [mem_map, mem_pi, Function.Embedding.coeFn_mk]
   congr! with z i _ hi
   generalize_proofs h
