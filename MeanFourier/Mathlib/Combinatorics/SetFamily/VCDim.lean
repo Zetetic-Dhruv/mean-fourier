@@ -97,7 +97,7 @@ instance : DecidablePred (Shatters (𝒜 : Set (Finset α))) :=
 end Finset
 
 section Set
-variable {m n d d₁ d₂ : ℕ} {𝒜 ℬ : Set (Set α)} {A B : Set α}
+variable {m n d d₁ d₂ : ℕ} {𝒜 ℬ : Set (Set α)} {A B : Set α} {x : α}
 
 @[gcongr]
 lemma Shatters.subset (h : A ⊆ B) (hB : Shatters 𝒜 B) : Shatters 𝒜 A := hB.anti h
@@ -113,19 +113,8 @@ lemma Shatters.of_forall_subset (h : ∀ ⦃B⦄, B ⊆ A → ∃ C ∈ 𝒜, A 
 
 /-- `𝒜` shatters the singleton `{x}` exactly when some member of `𝒜` contains `x` and some
 member of `𝒜` misses it. -/
-@[simp] lemma shatters_singleton {x : α} :
-    Shatters 𝒜 {x} ↔ (∃ C ∈ 𝒜, x ∈ C) ∧ ∃ C ∈ 𝒜, x ∉ C where
-  mp h := by
-    obtain ⟨C, hC, hxC⟩ := h.exists_inter_eq Set.Subset.rfl
-    obtain ⟨C', hC', hxC'⟩ := h.exists_inter_eq (Set.empty_subset _)
-    exact ⟨⟨C, hC, ((Set.ext_iff.1 hxC x).2 rfl).2⟩,
-      C', hC', fun hx ↦ (Set.ext_iff.1 hxC' x).1 ⟨rfl, hx⟩⟩
-  mpr := by
-    rintro ⟨⟨C, hC, hxC⟩, C', hC', hxC'⟩
-    refine Shatters.of_forall_subset fun B hB ↦ ?_
-    obtain rfl | rfl := Set.subset_singleton_iff_eq.1 hB
-    · exact ⟨C', hC', Set.singleton_inter_eq_empty.2 hxC'⟩
-    · exact ⟨C, hC, Set.inter_eq_self_of_subset_left (Set.singleton_subset_iff.2 hxC)⟩
+@[simp] lemma shatters_singleton : Shatters 𝒜 {x} ↔ (∃ C ∈ 𝒜, x ∉ C) ∧ ∃ C ∈ 𝒜, x ∈ C := by
+  simp [Shatters, -Set.subset_singleton_iff, Set.subset_singleton_iff_eq]
 
 open scoped Finset
 
@@ -316,7 +305,7 @@ private lemma pajor_encard_aux :
 variable (𝒜 A) in
 /-- The elements of `A` at which `𝒜` splits: some member of `𝒜` contains them and some does
 not. These are the elements whose singleton `𝒜` shatters. -/
-private def splitPoints : Set α := {x ∈ A | (∃ C ∈ 𝒜, x ∈ C) ∧ ∃ C ∈ 𝒜, x ∉ C}
+private def splitPoints : Set α := {x ∈ A | (∃ C ∈ 𝒜, x ∉ C) ∧ ∃ C ∈ 𝒜, x ∈ C}
 
 private lemma injOn_inter_splitPoints : Set.InjOn (· ∩ splitPoints 𝒜 A) ((A ∩ ·) '' 𝒜) := by
   rintro t ⟨C, hC, rfl⟩ t' ⟨C', hC', rfl⟩ hIt
@@ -324,8 +313,8 @@ private lemma injOn_inter_splitPoints : Set.InjOn (· ∩ splitPoints 𝒜 A) ((
   by_cases hyD : y ∈ splitPoints 𝒜 A
   · exact ⟨fun hy ↦ ((Set.ext_iff.1 hIt y).1 ⟨hy, hyD⟩).1,
       fun hy ↦ ((Set.ext_iff.1 hIt y).2 ⟨hy, hyD⟩).1⟩
-  · exact ⟨fun ⟨hyA, hyC⟩ ↦ ⟨hyA, by_contra fun hyC' ↦ hyD ⟨hyA, ⟨C, hC, hyC⟩, C', hC', hyC'⟩⟩,
-      fun ⟨hyA, hyC'⟩ ↦ ⟨hyA, by_contra fun hyC ↦ hyD ⟨hyA, ⟨C', hC', hyC'⟩, C, hC, hyC⟩⟩⟩
+  · exact ⟨fun ⟨hyA, hyC⟩ ↦ ⟨hyA, by_contra fun hyC' ↦ hyD ⟨hyA, ⟨C', hC', hyC'⟩, C, hC, hyC⟩⟩,
+      fun ⟨hyA, hyC'⟩ ↦ ⟨hyA, by_contra fun hyC ↦ hyD ⟨hyA, ⟨C, hC, hyC⟩, C', hC', hyC'⟩⟩⟩
 
 private lemma finite_image_inter_of_finite_splitPoints (h : (splitPoints 𝒜 A).Finite) :
     ((A ∩ ·) '' 𝒜).Finite :=
@@ -335,8 +324,8 @@ private lemma finite_image_inter_of_finite_splitPoints (h : (splitPoints 𝒜 A)
 
 private lemma singleton_image_splitPoints_subset :
     (fun x ↦ ({x} : Set α)) '' splitPoints 𝒜 A ⊆ {B | B ⊆ A ∧ Shatters 𝒜 B} := by
-  rintro _ ⟨x, ⟨hxA, hxin, hxout⟩, rfl⟩
-  exact ⟨Set.singleton_subset_iff.2 hxA, shatters_singleton.2 ⟨hxin, hxout⟩⟩
+  rintro _ ⟨x, ⟨hxA, hxout, hxin⟩, rfl⟩
+  exact ⟨Set.singleton_subset_iff.2 hxA, shatters_singleton.2 ⟨hxout, hxin⟩⟩
 
 /-- A family with infinitely many traces on `A` shatters infinitely many subsets of `A`, over
 any `α` and for any `𝒜`. -/
@@ -349,7 +338,7 @@ lemma infinite_setOf_shatters (h : ((A ∩ ·) '' 𝒜).Infinite) :
 /-- The points of `A` at which `𝒜` splits are exactly those whose singleton `𝒜` shatters. -/
 private lemma splitPoints_eq_setOf_shatters_singleton :
     splitPoints 𝒜 A = {x ∈ A | Shatters 𝒜 {x}} := by
-  ext x; simp only [splitPoints, Set.mem_setOf_eq, shatters_singleton]
+  ext x; simp only [splitPoints, Set.mem_ofPred_eq, shatters_singleton]
 
 /-- A trace is determined by its restriction to the points whose singleton is shattered, so the
 traces on `A` number at most `2 ^ k` with `k` the number of such points. No hypothesis on `𝒜`. -/
@@ -410,14 +399,12 @@ lemma HasVCDimLE.ncard_le_of_shatters (h𝒜 : HasVCDimLE d 𝒜) (hB : Shatters
 
 private lemma setOf_subset_and_ncard_le_zero (hA : A.Finite) :
     {B | B ⊆ A ∧ B.ncard ≤ 0} = {∅} := by
-  ext B
-  simp only [Set.mem_setOf_eq, Nat.le_zero, Set.mem_singleton_iff]
-  exact ⟨fun ⟨hBA, hB0⟩ ↦ (Set.ncard_eq_zero (hA.subset hBA)).1 hB0, by rintro rfl; simp⟩
+  ext B; simp +contextual [and_or_left, and_iff_right_of_imp, hA.subset]
 
 variable (A d) in
 private lemma setOf_subset_and_ncard_le_succ :
     {B | B ⊆ A ∧ B.ncard ≤ d + 1} = {B | B ⊆ A ∧ B.ncard ≤ d} ∪ {B ⊆ A | B.ncard = d + 1} := by
-  ext B; simp only [Set.mem_setOf_eq, Set.mem_union]; lia
+  ext B; simp only [Set.mem_ofPred_eq, Set.mem_union]; lia
 
 variable (A d) in
 private lemma disjoint_setOf_ncard_le_setOf_ncard_eq :
