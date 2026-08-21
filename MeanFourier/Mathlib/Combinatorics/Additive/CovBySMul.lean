@@ -107,7 +107,7 @@ protected lemma CovBySMul.iInter {ι : Type*} {A : ι → Set G} {s : Finset ι}
   let rep (φ : ι → G) : G := if h : ∃ y ∈ B, prof y = φ then h.choose else 1
   have hrep : ∀ x ∈ B, prof (rep (prof x)) = prof x ∧ rep (prof x) ∈ B := fun x hx ↦ by
     have hy : ∃ y ∈ B, prof y = prof x := ⟨x, hx, _root_.rfl⟩
-    rw [show rep (prof x) = hy.choose from dif_pos hy]
+    rw [show rep (prof x) = hy.choose from dite_eq_left hy]
     exact ⟨hy.choose_spec.2, hy.choose_spec.1⟩
   refine ⟨T.image rep, ?_, fun x hx ↦ ?_⟩
   · calc (#(T.image rep) : ℝ)
@@ -125,7 +125,7 @@ protected lemma CovBySMul.iInter {ι : Type*} {A : ι → Set G} {s : Finset ι}
 /-- Covering `B` by `K` right translates of `A` is the same as covering `B⁻¹` by `K` left translates
 of `A⁻¹`. -/
 lemma covBySMul_mulOpposite_iff : CovBySMul Gᵐᵒᵖ K A B ↔ CovBySMul G K A⁻¹ B⁻¹ := by
-  refine ((Equiv.inv G).trans MulOpposite.opEquiv).finsetCongr.symm.exists_congr' ?_
+  refine (Equiv.Finset.congr <| (Equiv.inv G).trans MulOpposite.opEquiv).symm.exists_congr' ?_
   simp [Set.inv_subset, ← Function.comp_def _ (·⁻¹), Set.image_comp, -MulOpposite.op_inv,
     Set.image_op_smul]
 

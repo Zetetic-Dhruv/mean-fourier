@@ -5,8 +5,8 @@ Authors: Yaël Dillies
 -/
 module
 
+public import Mathlib.MeasureTheory.Integral.Average
 public import MeanFourier.InvtMean.Defs
-public import MeanFourier.Mathlib.MeasureTheory.Integral.Average
 public import MeanFourier.Mathlib.MeasureTheory.Group.FoelnerFilter
 
 /-!

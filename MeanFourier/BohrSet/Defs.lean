@@ -134,6 +134,7 @@ lemma mem_chordSet_iff_norm_width :
 
 @[simp] lemma one_mem_chordSet : 1 ∈ B.chordSet := by simp [mem_chordSet_iff_nnnorm_width]
 
+set_option backward.isDefEq.respectTransparency false in
 @[simp] lemma inv_mem_chordSet : x⁻¹ ∈ B.chordSet ↔ x ∈ B.chordSet := by
   refine forall_congr' fun ψ ↦ ?_
   rw [← nnnorm_map ContinuousLinearMap.adjoint]
@@ -234,17 +235,16 @@ noncomputable instance [Finite G] : InfSet (BohrSet G) where
     mem_frequencies := by simp
   }
 
-noncomputable def minimalAxioms [Finite G] :
-    CompletelyDistribLattice.MinimalAxioms (BohrSet G) :=
-  ewidth_injective.completelyDistribLatticeMinimalAxioms .of BohrSet.ewidth
-    .rfl .rfl (fun _ _ ↦ rfl) (fun _ _ ↦ rfl)
-    (fun B ↦ by ext ψ; simp [iSup_apply]; rfl)
-    (fun B ↦ by ext ψ; simp [iInf_apply]; rfl)
+noncomputable instance [Finite G] : CompleteLattice (BohrSet G) :=
+  ewidth_injective.completeLattice BohrSet.ewidth .rfl .rfl (fun _ _ ↦ rfl) (fun _ _ ↦ rfl)
+    (fun B ↦ by ext ψ; simp only [iSup_apply]; rfl)
+    (fun B ↦ by ext ψ; simp only [iInf_apply]; rfl)
     rfl
     rfl
 
-noncomputable instance [Finite G] : CompletelyDistribLattice (BohrSet G) :=
-  .ofMinimalAxioms BohrSet.minimalAxioms
+noncomputable instance [Finite G] : CompletelyDistribLattice (BohrSet G) := by
+  refine .ofMinimalAxioms <| ewidth_injective.completelyDistribLatticeMinimalAxioms .of ewidth ?_ ?_
+    <;> · intros; ext; simp only [iSup_apply, iInf_apply]; rfl
 
 /-! ### Width, frequencies, rank -/
 
