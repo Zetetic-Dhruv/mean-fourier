@@ -302,43 +302,34 @@ private lemma pajor_encard_aux :
             · exact ⟨hBA, hB.mono (Set.sep_subset _ _)⟩
             · exact ⟨Set.insert_subset_iff.2 ⟨hxA, hB'A⟩, hB'₀.insert hB'₁⟩
 
-variable (𝒜 A) in
-/-- The elements of `A` at which `𝒜` splits: some member of `𝒜` contains them and some does
-not. These are the elements whose singleton `𝒜` shatters. -/
-private def splitPoints : Set α := {x ∈ A | (∃ C ∈ 𝒜, x ∉ C) ∧ ∃ C ∈ 𝒜, x ∈ C}
-
-private lemma injOn_inter_splitPoints : Set.InjOn (· ∩ splitPoints 𝒜 A) ((A ∩ ·) '' 𝒜) := by
+/-- A trace of `𝒜` on `A` is determined by its restriction to the points whose singleton `𝒜`
+shatters: off those points, membership in the trace is decided by `A` alone. -/
+private lemma injOn_inter_setOf_shatters_singleton :
+    Set.InjOn (· ∩ {x ∈ A | Shatters 𝒜 {x}}) ((A ∩ ·) '' 𝒜) := by
   rintro t ⟨C, hC, rfl⟩ t' ⟨C', hC', rfl⟩ hIt
   ext y
-  by_cases hyD : y ∈ splitPoints 𝒜 A
-  · exact ⟨fun hy ↦ ((Set.ext_iff.1 hIt y).1 ⟨hy, hyD⟩).1,
-      fun hy ↦ ((Set.ext_iff.1 hIt y).2 ⟨hy, hyD⟩).1⟩
-  · exact ⟨fun ⟨hyA, hyC⟩ ↦ ⟨hyA, by_contra fun hyC' ↦ hyD ⟨hyA, ⟨C', hC', hyC'⟩, C, hC, hyC⟩⟩,
-      fun ⟨hyA, hyC'⟩ ↦ ⟨hyA, by_contra fun hyC ↦ hyD ⟨hyA, ⟨C, hC, hyC⟩, C', hC', hyC'⟩⟩⟩
+  simp only [Set.ext_iff, Set.mem_inter_iff, Set.mem_ofPred_eq, shatters_singleton] at hIt
+  grind
 
-private lemma finite_image_inter_of_finite_splitPoints (h : (splitPoints 𝒜 A).Finite) :
-    ((A ∩ ·) '' 𝒜).Finite :=
+/-- A family shattering finitely many singletons in `A` has finitely many traces on `A`. -/
+private lemma finite_image_inter_of_finite_setOf_shatters_singleton
+    (h : {x ∈ A | Shatters 𝒜 {x}}.Finite) : ((A ∩ ·) '' 𝒜).Finite :=
   Set.Finite.of_finite_image
     (h.finite_subsets.subset <| by rintro _ ⟨t, -, rfl⟩; exact Set.inter_subset_right)
-    injOn_inter_splitPoints
+    injOn_inter_setOf_shatters_singleton
 
-private lemma singleton_image_splitPoints_subset :
-    (fun x ↦ ({x} : Set α)) '' splitPoints 𝒜 A ⊆ {B | B ⊆ A ∧ Shatters 𝒜 B} := by
-  rintro _ ⟨x, ⟨hxA, hxout, hxin⟩, rfl⟩
-  exact ⟨Set.singleton_subset_iff.2 hxA, shatters_singleton.2 ⟨hxout, hxin⟩⟩
+private lemma singleton_image_subset_setOf_shatters :
+    (fun x ↦ ({x} : Set α)) '' {x ∈ A | Shatters 𝒜 {x}} ⊆ {B | B ⊆ A ∧ Shatters 𝒜 B} := by
+  rintro _ ⟨x, ⟨hxA, hx⟩, rfl⟩
+  exact ⟨Set.singleton_subset_iff.2 hxA, hx⟩
 
 /-- A family with infinitely many traces on `A` shatters infinitely many subsets of `A`, over
 any `α` and for any `𝒜`. -/
 lemma infinite_setOf_shatters (h : ((A ∩ ·) '' 𝒜).Infinite) :
     {B | B ⊆ A ∧ Shatters 𝒜 B}.Infinite :=
-  Set.Infinite.mono singleton_image_splitPoints_subset <|
+  Set.Infinite.mono singleton_image_subset_setOf_shatters <|
     Set.Infinite.image Set.singleton_injective.injOn fun hfin ↦
-      h (finite_image_inter_of_finite_splitPoints hfin)
-
-/-- The points of `A` at which `𝒜` splits are exactly those whose singleton `𝒜` shatters. -/
-private lemma splitPoints_eq_setOf_shatters_singleton :
-    splitPoints 𝒜 A = {x ∈ A | Shatters 𝒜 {x}} := by
-  ext x; simp only [splitPoints, Set.mem_ofPred_eq, shatters_singleton]
+      h (finite_image_inter_of_finite_setOf_shatters_singleton hfin)
 
 /-- A trace is determined by its restriction to the points whose singleton is shattered, so the
 traces on `A` number at most `2 ^ k` with `k` the number of such points. No hypothesis on `𝒜`. -/
@@ -348,8 +339,7 @@ lemma ncard_image_inter_le_two_pow_ncard_shatters_singleton
   rw [← Set.ncard_powerset _ h]
   refine Set.ncard_le_ncard_of_injOn (· ∩ {x ∈ A | Shatters 𝒜 {x}})
     (fun t _ ↦ Set.inter_subset_right) ?_ (h.powerset)
-  rw [← splitPoints_eq_setOf_shatters_singleton]
-  exact injOn_inter_splitPoints
+  exact injOn_inter_setOf_shatters_singleton
 
 /-- The subsets of `A` shattered by `𝒜` grow with `𝒜`. -/
 lemma setOf_shatters_mono (h : 𝒜 ⊆ ℬ) :
