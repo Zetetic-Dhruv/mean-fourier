@@ -102,15 +102,6 @@ variable {m n d d₁ d₂ : ℕ} {𝒜 ℬ : Set (Set α)} {A B : Set α} {x : �
 @[gcongr]
 lemma Shatters.subset (h : A ⊆ B) (hB : Shatters 𝒜 B) : Shatters 𝒜 A := hB.anti h
 
-/-- `Shatters` read at `Set α`, where `⊓` is `∩` and `≤` is `⊆`: every subset of `A` is the
-intersection of `A` with a member of `𝒜`. Definitionally the same statement, stated in the
-shape every use site wants, so that consumers obtain an `∩`-typed equation directly. -/
-lemma Shatters.exists_inter_eq (h : Shatters 𝒜 A) (hB : B ⊆ A) : ∃ C ∈ 𝒜, A ∩ C = B := h hB
-
-/-- `Shatters` read at `Set α`, as an introduction rule; the `∩`-shaped companion of
-`Shatters.of_forall_le`. -/
-lemma Shatters.of_forall_subset (h : ∀ ⦃B⦄, B ⊆ A → ∃ C ∈ 𝒜, A ∩ C = B) : Shatters 𝒜 A := h
-
 /-- `𝒜` shatters the singleton `{x}` exactly when some member of `𝒜` contains `x` and some
 member of `𝒜` misses it. -/
 @[simp] lemma shatters_singleton : Shatters 𝒜 {x} ↔ (∃ C ∈ 𝒜, x ∉ C) ∧ ∃ C ∈ 𝒜, x ∈ C := by
@@ -215,16 +206,19 @@ private lemma notMem_of_shatters_sep_right {x : α} (h : Shatters {C ∈ 𝒜 | 
 containing `x`, then `𝒜` shatters `insert x B`. This is the exchange step in the proof of
 Pajor's inequality. -/
 lemma Shatters.insert {x : α} (h₀ : Shatters {C ∈ 𝒜 | x ∉ C} B)
-    (h₁ : Shatters {C ∈ 𝒜 | x ∈ C} B) : Shatters 𝒜 (insert x B) :=
-  Shatters.of_forall_subset fun B' hB' ↦ by
-    by_cases hxB' : x ∈ B'
-    · obtain ⟨C, hC, hBC⟩ := h₁.exists_inter_eq
-        (show B' \ {x} ⊆ B from fun y hy ↦ (hB' hy.1).resolve_left hy.2)
-      exact ⟨C, hC.1, by rw [Set.insert_inter_of_mem hC.2, hBC, Set.insert_sdiff_singleton,
-        Set.insert_eq_of_mem hxB']⟩
-    · obtain ⟨C, hC, hBC⟩ := h₀.exists_inter_eq
-        (show B' ⊆ B from fun y hy ↦ (hB' hy).resolve_left fun (e : y = x) ↦ hxB' (e ▸ hy))
-      exact ⟨C, hC.1, by rw [Set.insert_inter_of_notMem hC.2, hBC]⟩
+    (h₁ : Shatters {C ∈ 𝒜 | x ∈ C} B) : Shatters 𝒜 (insert x B) := by
+  intro B' hB'
+  simp only [Set.subset_def, Set.mem_insert_iff] at hB'
+  by_cases hxB' : x ∈ B'
+  · obtain ⟨C, hC, hBC⟩ := h₁ (show B' \ {x} ≤ B by grind)
+    refine ⟨C, hC.1, ?_⟩
+    simp only [Set.inf_eq_inter] at hBC ⊢
+    rw [Set.insert_inter_of_mem hC.2, hBC, Set.insert_sdiff_singleton,
+      Set.insert_eq_of_mem hxB']
+  · obtain ⟨C, hC, hBC⟩ := h₀ (show B' ≤ B by grind)
+    refine ⟨C, hC.1, ?_⟩
+    simp only [Set.inf_eq_inter] at hBC ⊢
+    rw [Set.insert_inter_of_notMem hC.2, hBC]
 
 /-- A point of `A` witnessing that one trace fails to contain another is a point at which `𝒜`
 splits. -/
@@ -252,55 +246,48 @@ private lemma disjoint_image_insert {x : α} {𝒮 𝒯 : Set (Set α)} (h𝒮 :
   rintro B hB ⟨B', -, rfl⟩
   exact h𝒮 _ hB (Set.mem_insert x B')
 
-private lemma pajor_encard_aux :
-    ∀ N (𝒜 : Set (Set α)), ((A ∩ ·) '' 𝒜).Finite → ((A ∩ ·) '' 𝒜).ncard ≤ N →
-      ((A ∩ ·) '' 𝒜).encard ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.encard := by
-  intro N
-  induction N with
-  | zero =>
-    intro 𝒜 hfin hN
-    rw [(Set.ncard_eq_zero hfin).1 (Nat.le_zero.1 hN), Set.encard_empty]
-    exact zero_le
-  | succ N ih =>
-    intro 𝒜 hfin hN
-    obtain hsub | hnt := Set.subsingleton_or_nontrivial ((A ∩ ·) '' 𝒜)
-    · obtain hemp | ⟨t, ht⟩ := ((A ∩ ·) '' 𝒜).eq_empty_or_nonempty
-      · rw [hemp, Set.encard_empty]
-        exact zero_le
-      · obtain ⟨C, hC, -⟩ := id ht
-        rw [Set.eq_singleton_iff_unique_mem.2 ⟨ht, fun _ ht' ↦ hsub ht' ht⟩, Set.encard_singleton]
-        exact Set.one_le_encard_iff_nonempty.2 ⟨∅, Set.empty_subset A, shatters_bot.2 ⟨C, hC⟩⟩
-    · obtain ⟨x, hxA, ⟨C₁, hC₁, hxC₁⟩, C₂, hC₂, hxC₂⟩ := exists_splitter hnt
-      have hfin₀ : ((A ∩ ·) '' {C ∈ 𝒜 | x ∉ C}).Finite :=
-        hfin.subset (Set.image_mono (Set.sep_subset _ _))
-      have hfin₁ : ((A ∩ ·) '' {C ∈ 𝒜 | x ∈ C}).Finite :=
-        hfin.subset (Set.image_mono (Set.sep_subset _ _))
-      have hpos₀ : 0 < ((A ∩ ·) '' {C ∈ 𝒜 | x ∉ C}).ncard :=
-        (Set.ncard_pos hfin₀).2 ⟨A ∩ C₂, C₂, ⟨hC₂, hxC₂⟩, rfl⟩
-      have hpos₁ : 0 < ((A ∩ ·) '' {C ∈ 𝒜 | x ∈ C}).ncard :=
-        (Set.ncard_pos hfin₁).2 ⟨A ∩ C₁, C₁, ⟨hC₁, hxC₁⟩, rfl⟩
-      rw [← trace_sep_union (x := x), Set.ncard_union_eq (trace_sep_disjoint hxA) hfin₀ hfin₁]
-        at hN
-      set 𝒮₀ := {B | B ⊆ A ∧ Shatters {C ∈ 𝒜 | x ∉ C} B}
-      set 𝒮₁ := {B | B ⊆ A ∧ Shatters {C ∈ 𝒜 | x ∈ C} B}
-      calc ((A ∩ ·) '' 𝒜).encard
-          = ((A ∩ ·) '' {C ∈ 𝒜 | x ∉ C}).encard + ((A ∩ ·) '' {C ∈ 𝒜 | x ∈ C}).encard := by
-            rw [← trace_sep_union (x := x), Set.encard_union_eq (trace_sep_disjoint hxA)]
-        _ ≤ 𝒮₀.encard + 𝒮₁.encard := add_le_add (ih _ hfin₀ (by lia)) (ih _ hfin₁ (by lia))
-        _ = (𝒮₀ ∪ 𝒮₁).encard + (𝒮₀ ∩ 𝒮₁).encard :=
-            (Set.encard_union_add_encard_inter 𝒮₀ 𝒮₁).symm
-        _ = (𝒮₀ ∪ 𝒮₁).encard + (insert x '' (𝒮₀ ∩ 𝒮₁)).encard := by
-            rw [((insert_injOn_notMem x).mono
-              fun B hB ↦ notMem_of_shatters_sep_left hB.1.2).encard_image]
-        _ = ((𝒮₀ ∪ 𝒮₁) ∪ insert x '' (𝒮₀ ∩ 𝒮₁)).encard :=
-            (Set.encard_union_eq <| disjoint_image_insert <| by
-              rintro B (⟨-, hB⟩ | ⟨-, hB⟩)
-              exacts [notMem_of_shatters_sep_left hB, notMem_of_shatters_sep_right hB]).symm
-        _ ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.encard := Set.encard_le_encard <| by
-            rintro B ((⟨hBA, hB⟩ | ⟨hBA, hB⟩) | ⟨B', ⟨⟨hB'A, hB'₀⟩, -, hB'₁⟩, rfl⟩)
-            · exact ⟨hBA, hB.mono (Set.sep_subset _ _)⟩
-            · exact ⟨hBA, hB.mono (Set.sep_subset _ _)⟩
-            · exact ⟨Set.insert_subset_iff.2 ⟨hxA, hB'A⟩, hB'₀.insert hB'₁⟩
+private lemma pajor_encard_aux (hfin : ((A ∩ ·) '' 𝒜).Finite) :
+    ((A ∩ ·) '' 𝒜).encard ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.encard := by
+  induction hn : ((A ∩ ·) '' 𝒜).ncard using Nat.strong_induction_on generalizing 𝒜 with
+  | _ N ih =>
+  obtain hsub | hnt := Set.subsingleton_or_nontrivial ((A ∩ ·) '' 𝒜)
+  · obtain hemp | ⟨t, ht⟩ := ((A ∩ ·) '' 𝒜).eq_empty_or_nonempty
+    · simp [hemp]
+    · obtain ⟨C, hC, -⟩ := id ht
+      rw [Set.eq_singleton_iff_unique_mem.2 ⟨ht, fun _ ht' ↦ hsub ht' ht⟩, Set.encard_singleton]
+      exact Set.one_le_encard_iff_nonempty.2 ⟨∅, Set.empty_subset A, shatters_bot.2 ⟨C, hC⟩⟩
+  · obtain ⟨x, hxA, ⟨C₁, hC₁, hxC₁⟩, C₂, hC₂, hxC₂⟩ := exists_splitter hnt
+    have hfin₀ : ((A ∩ ·) '' {C ∈ 𝒜 | x ∉ C}).Finite :=
+      hfin.subset (Set.image_mono (Set.sep_subset _ _))
+    have hfin₁ : ((A ∩ ·) '' {C ∈ 𝒜 | x ∈ C}).Finite :=
+      hfin.subset (Set.image_mono (Set.sep_subset _ _))
+    have hpos₀ : 0 < ((A ∩ ·) '' {C ∈ 𝒜 | x ∉ C}).ncard :=
+      (Set.ncard_pos hfin₀).2 ⟨A ∩ C₂, C₂, ⟨hC₂, hxC₂⟩, rfl⟩
+    have hpos₁ : 0 < ((A ∩ ·) '' {C ∈ 𝒜 | x ∈ C}).ncard :=
+      (Set.ncard_pos hfin₁).2 ⟨A ∩ C₁, C₁, ⟨hC₁, hxC₁⟩, rfl⟩
+    rw [← trace_sep_union (x := x), Set.ncard_union_eq (trace_sep_disjoint hxA) hfin₀ hfin₁]
+      at hn
+    set 𝒮₀ := {B | B ⊆ A ∧ Shatters {C ∈ 𝒜 | x ∉ C} B}
+    set 𝒮₁ := {B | B ⊆ A ∧ Shatters {C ∈ 𝒜 | x ∈ C} B}
+    calc ((A ∩ ·) '' 𝒜).encard
+        = ((A ∩ ·) '' {C ∈ 𝒜 | x ∉ C}).encard + ((A ∩ ·) '' {C ∈ 𝒜 | x ∈ C}).encard := by
+          rw [← trace_sep_union (x := x), Set.encard_union_eq (trace_sep_disjoint hxA)]
+      _ ≤ 𝒮₀.encard + 𝒮₁.encard :=
+          add_le_add (ih _ (by lia) hfin₀ rfl) (ih _ (by lia) hfin₁ rfl)
+      _ = (𝒮₀ ∪ 𝒮₁).encard + (𝒮₀ ∩ 𝒮₁).encard :=
+          (Set.encard_union_add_encard_inter 𝒮₀ 𝒮₁).symm
+      _ = (𝒮₀ ∪ 𝒮₁).encard + (insert x '' (𝒮₀ ∩ 𝒮₁)).encard := by
+          rw [((insert_injOn_notMem x).mono
+            fun B hB ↦ notMem_of_shatters_sep_left hB.1.2).encard_image]
+      _ = ((𝒮₀ ∪ 𝒮₁) ∪ insert x '' (𝒮₀ ∩ 𝒮₁)).encard :=
+          (Set.encard_union_eq <| disjoint_image_insert <| by
+            rintro B (⟨-, hB⟩ | ⟨-, hB⟩)
+            exacts [notMem_of_shatters_sep_left hB, notMem_of_shatters_sep_right hB]).symm
+      _ ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.encard := Set.encard_le_encard <| by
+          rintro B ((⟨hBA, hB⟩ | ⟨hBA, hB⟩) | ⟨B', ⟨⟨hB'A, hB'₀⟩, -, hB'₁⟩, rfl⟩)
+          · exact ⟨hBA, hB.mono (Set.sep_subset _ _)⟩
+          · exact ⟨hBA, hB.mono (Set.sep_subset _ _)⟩
+          · exact ⟨Set.insert_subset_iff.2 ⟨hxA, hB'A⟩, hB'₀.insert hB'₁⟩
 
 /-- A trace of `𝒜` on `A` is determined by its restriction to the points whose singleton `𝒜`
 shatters: off those points, membership in the trace is decided by `A` alone. -/
@@ -351,7 +338,7 @@ as many as the subsets of `A` shattered by `𝒜`. -/
 lemma encard_image_inter_le_encard_shatters :
     ((A ∩ ·) '' 𝒜).encard ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.encard := by
   by_cases h : ((A ∩ ·) '' 𝒜).Finite
-  · exact pajor_encard_aux _ 𝒜 h le_rfl
+  · exact pajor_encard_aux h
   · rw [(infinite_setOf_shatters h).encard_eq]
     exact le_top
 
@@ -363,8 +350,44 @@ lemma encard_determined_le_encard_shatters :
       {B | B ⊆ A ∧ Shatters 𝒜 B}.encard :=
   (Set.encard_le_encard (Set.sep_subset _ _)).trans encard_image_inter_le_encard_shatters
 
+-- possibly better placed in `Data/Set/Card`
+
 lemma finite_setOf_subset_and (hA : A.Finite) (p : Set α → Prop) :
     {B | B ⊆ A ∧ p B}.Finite := hA.finite_subsets.subset fun _B hB ↦ hB.1
+
+private lemma setOf_subset_and_ncard_le_zero (hA : A.Finite) :
+    {B | B ⊆ A ∧ B.ncard ≤ 0} = {∅} := by
+  ext B; simp +contextual [and_or_left, and_iff_right_of_imp, hA.subset]
+
+variable (A d) in
+private lemma setOf_subset_and_ncard_le_succ :
+    {B | B ⊆ A ∧ B.ncard ≤ d + 1} = {B | B ⊆ A ∧ B.ncard ≤ d} ∪ {B ⊆ A | B.ncard = d + 1} := by
+  ext B; simp only [Set.mem_ofPred_eq, Set.mem_union]; lia
+
+variable (A d) in
+private lemma disjoint_setOf_ncard_le_setOf_ncard_eq :
+    Disjoint {B | B ⊆ A ∧ B.ncard ≤ d} {B ⊆ A | B.ncard = d + 1} := by
+  rw [Set.disjoint_left]; rintro _B ⟨-, hle⟩ ⟨-, heq⟩; lia
+
+-- `Finset.Iic` has no recursion API in Mathlib; these are the two missing lemmas
+private lemma sum_Iic_zero {M : Type*} [AddCommMonoid M] (f : ℕ → M) :
+    ∑ k ∈ Finset.Iic 0, f k = f 0 := by
+  rw [← Nat.range_succ_eq_Iic, Finset.sum_range_one]
+
+private lemma sum_Iic_succ {M : Type*} [AddCommMonoid M] (f : ℕ → M) (n : ℕ) :
+    ∑ k ∈ Finset.Iic (n + 1), f k = (∑ k ∈ Finset.Iic n, f k) + f (n + 1) := by
+  rw [← Nat.range_succ_eq_Iic, ← Nat.range_succ_eq_Iic, Finset.sum_range_succ]
+
+lemma ncard_setOf_ncard_le (hA : A.Finite) (d : ℕ) :
+    {B | B ⊆ A ∧ B.ncard ≤ d}.ncard = ∑ k ∈ .Iic d, A.ncard.choose k := by
+  induction d with
+  | zero => rw [setOf_subset_and_ncard_le_zero hA, Set.ncard_singleton, sum_Iic_zero,
+      Nat.choose_zero_right]
+  | succ d ihd =>
+    rw [setOf_subset_and_ncard_le_succ,
+      Set.ncard_union_eq (disjoint_setOf_ncard_le_setOf_ncard_eq ..)
+        (finite_setOf_subset_and hA _) (finite_setOf_subset_and hA _), ihd,
+      Set.ncard_powerset_ncard hA, sum_Iic_succ]
 
 /-- The finite form of **Pajor's inequality**. -/
 lemma ncard_image_inter_le_ncard_shatters (hA : A.Finite) :
@@ -382,37 +405,6 @@ lemma HasVCDimLE.finite_of_shatters (h𝒜 : HasVCDimLE d 𝒜) (hB : Shatters �
 /-- A family of VC dimension at most `d` shatters only sets of size at most `d` -/
 lemma HasVCDimLE.ncard_le_of_shatters (h𝒜 : HasVCDimLE d 𝒜) (hB : Shatters 𝒜 B) :
     B.ncard ≤ d := h𝒜 (h𝒜.finite_of_shatters hB) hB
-
--- the `A.Finite` in `HasVCDimLE` looks redundant now: it only constrains sets already known
--- finite, but `finite_of_shatters` says nothing infinite is shattered anyway, so `HasVCDimLE d 𝒜`
--- should be equivalent to `∀ A, Shatters 𝒜 A → A.ncard ≤ d`.
-
-private lemma setOf_subset_and_ncard_le_zero (hA : A.Finite) :
-    {B | B ⊆ A ∧ B.ncard ≤ 0} = {∅} := by
-  ext B; simp +contextual [and_or_left, and_iff_right_of_imp, hA.subset]
-
-variable (A d) in
-private lemma setOf_subset_and_ncard_le_succ :
-    {B | B ⊆ A ∧ B.ncard ≤ d + 1} = {B | B ⊆ A ∧ B.ncard ≤ d} ∪ {B ⊆ A | B.ncard = d + 1} := by
-  ext B; simp only [Set.mem_ofPred_eq, Set.mem_union]; lia
-
-variable (A d) in
-private lemma disjoint_setOf_ncard_le_setOf_ncard_eq :
-    Disjoint {B | B ⊆ A ∧ B.ncard ≤ d} {B ⊆ A | B.ncard = d + 1} := by
-  rw [Set.disjoint_left]; rintro _B ⟨-, hle⟩ ⟨-, heq⟩; lia
-
-lemma ncard_setOf_ncard_le (hA : A.Finite) (d : ℕ) :
-    {B | B ⊆ A ∧ B.ncard ≤ d}.ncard = ∑ k ∈ .Iic d, A.ncard.choose k := by
-  induction d with
-  | zero =>
-    rw [setOf_subset_and_ncard_le_zero hA, Set.ncard_singleton, ← Nat.range_succ_eq_Iic,
-      Finset.sum_range_one, Nat.choose_zero_right]
-  | succ d ihd =>
-    rw [setOf_subset_and_ncard_le_succ,
-      Set.ncard_union_eq (disjoint_setOf_ncard_le_setOf_ncard_eq ..)
-        (finite_setOf_subset_and hA _) (finite_setOf_subset_and hA _), ihd,
-      Set.ncard_powerset_ncard hA, ← Nat.range_succ_eq_Iic, ← Nat.range_succ_eq_Iic]
-    exact (Finset.sum_range_succ _ _).symm
 
 /-- The Sauer-Shelah count, from a bound on the shattered subsets of `A` alone. -/
 private lemma ncard_image_inter_le_of_forall_ncard_le (hA : A.Finite) (hAn : A.ncard ≤ n)
@@ -448,12 +440,6 @@ the growth function of a family of VC dimension at most `d` is at most `∑ k �
 lemma HasVCDimLE.vcGrowth_le (h𝒜 : HasVCDimLE d 𝒜) :
     vcGrowth n 𝒜 ≤ ∑ k ∈ .Iic d, n.choose k :=
   vcGrowth_le_iff.2 fun _A hA hAn ↦ h𝒜.ncard_image_inter_le hA hAn
-
-/-- `HasVCDimLE.vcGrowth_le` with the sum indexed by `Finset.range (d + 1)` in place of
-`Finset.Iic d` -/
-private lemma HasVCDimLE.vcGrowth_le_sum_range (h𝒜 : HasVCDimLE d 𝒜) :
-    vcGrowth n 𝒜 ≤ ∑ k ∈ Finset.range (d + 1), n.choose k := by
-  rw [Nat.range_succ_eq_Iic]; exact h𝒜.vcGrowth_le
 
 private lemma sum_choose_mul_pow_le_add_one_pow {t : ℝ} (ht : 0 ≤ t) (hdm : d ≤ m) :
     ∑ i ∈ Finset.range (d + 1), (m.choose i : ℝ) * t ^ i ≤ (1 + t) ^ m := by
@@ -506,11 +492,11 @@ lemma HasVCDimLE.vcGrowth_le_exp (h𝒜 : HasVCDimLE d 𝒜) (hdn : d ≤ n) :
     (vcGrowth n 𝒜 : ℝ) ≤ (exp 1 / d * n) ^ d := by
   obtain rfl | hd := Nat.eq_zero_or_pos d
   · rw [pow_zero]
-    exact_mod_cast (h𝒜.vcGrowth_le_sum_range (n := n)).trans_eq (by simp)
+    exact_mod_cast (h𝒜.vcGrowth_le (n := n)).trans_eq (by rw [sum_Iic_zero]; simp)
   · calc (vcGrowth n 𝒜 : ℝ)
-        ≤ ((∑ k ∈ Finset.range (d + 1), n.choose k : ℕ) : ℝ) :=
-          Nat.cast_le.2 h𝒜.vcGrowth_le_sum_range
-      _ = ∑ k ∈ Finset.range (d + 1), (n.choose k : ℝ) := by push_cast; rfl
+        ≤ ((∑ k ∈ .Iic d, n.choose k : ℕ) : ℝ) := Nat.cast_le.2 h𝒜.vcGrowth_le
+      _ = ∑ k ∈ Finset.range (d + 1), (n.choose k : ℝ) := by
+          rw [Nat.range_succ_eq_Iic]; push_cast; rfl
       _ ≤ (exp 1 / d * n) ^ d := sum_choose_le_exp_pow d n hd hdn
 
 variable [Infinite α]
