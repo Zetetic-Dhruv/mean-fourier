@@ -424,18 +424,23 @@ lemma ncard_setOf_ncard_le (hA : A.Finite) (d : ℕ) :
       Set.ncard_powerset_ncard hA, ← Nat.range_succ_eq_Iic, ← Nat.range_succ_eq_Iic]
     exact (Finset.sum_range_succ _ _).symm
 
+/-- The Sauer-Shelah count, from a bound on the shattered subsets of `A` alone. -/
+private lemma ncard_image_inter_le_of_forall_ncard_le (hA : A.Finite) (hAn : A.ncard ≤ n)
+    (h : ∀ B ⊆ A, Shatters 𝒜 B → B.ncard ≤ d) :
+    ((A ∩ ·) '' 𝒜).ncard ≤ ∑ k ∈ .Iic d, n.choose k :=
+  calc ((A ∩ ·) '' 𝒜).ncard
+      ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.ncard := ncard_image_inter_le_ncard_shatters hA
+    _ ≤ {B | B ⊆ A ∧ B.ncard ≤ d}.ncard :=
+        Set.ncard_le_ncard (fun _B hB ↦ ⟨hB.1, h _ hB.1 hB.2⟩) (finite_setOf_subset_and hA _)
+    _ = ∑ k ∈ .Iic d, A.ncard.choose k := ncard_setOf_ncard_le hA d
+    _ ≤ ∑ k ∈ .Iic d, n.choose k := Finset.sum_le_sum fun k _ ↦ Nat.choose_le_choose k hAn
+
 /-- **The Sauer-Shelah inequality**: a family of VC dimension at most `d` traces at most
 `∑ k ≤ d, n.choose k` sets on any finite set of size at most `n`. -/
 lemma HasVCDimLE.ncard_image_inter_le (h𝒜 : HasVCDimLE d 𝒜) (hA : A.Finite)
     (hAn : A.ncard ≤ n) :
     ((A ∩ ·) '' 𝒜).ncard ≤ ∑ k ∈ .Iic d, n.choose k :=
-  calc ((A ∩ ·) '' 𝒜).ncard
-      ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.ncard := ncard_image_inter_le_ncard_shatters hA
-    _ ≤ {B | B ⊆ A ∧ B.ncard ≤ d}.ncard :=
-        Set.ncard_le_ncard (fun _B hB ↦ ⟨hB.1, h𝒜.ncard_le_of_shatters hB.2⟩)
-          (finite_setOf_subset_and hA _)
-    _ = ∑ k ∈ .Iic d, A.ncard.choose k := ncard_setOf_ncard_le hA d
-    _ ≤ ∑ k ∈ .Iic d, n.choose k := Finset.sum_le_sum fun k _ ↦ Nat.choose_le_choose k hAn
+  ncard_image_inter_le_of_forall_ncard_le hA hAn fun _B _ hB ↦ h𝒜.ncard_le_of_shatters hB
 
 /-- The extraction form of the Sauer-Shelah inequality: a family tracing more than
 `∑ k ≤ d, n.choose k` sets on a finite `A` of size at most `n` shatters a subset of `A` of size
@@ -445,14 +450,8 @@ lemma exists_shatters_of_lt_ncard_image_inter (hA : A.Finite) (hAn : A.ncard ≤
     ∃ B ⊆ A, d < B.ncard ∧ Shatters 𝒜 B := by
   by_contra hc
   push Not at hc
-  refine absurd h (not_lt.2 ?_)
-  calc ((A ∩ ·) '' 𝒜).ncard
-      ≤ {B | B ⊆ A ∧ Shatters 𝒜 B}.ncard := ncard_image_inter_le_ncard_shatters hA
-    _ ≤ {B | B ⊆ A ∧ B.ncard ≤ d}.ncard :=
-        Set.ncard_le_ncard (fun _B hB ↦ ⟨hB.1, not_lt.1 fun hlt ↦ hc _ hB.1 hlt hB.2⟩)
-          (finite_setOf_subset_and hA _)
-    _ = ∑ k ∈ .Iic d, A.ncard.choose k := ncard_setOf_ncard_le hA d
-    _ ≤ ∑ k ∈ .Iic d, n.choose k := Finset.sum_le_sum fun k _ ↦ Nat.choose_le_choose k hAn
+  exact absurd h (not_lt.2 (ncard_image_inter_le_of_forall_ncard_le hA hAn
+    fun _B hBA hB ↦ not_lt.1 fun hlt ↦ hc _ hBA hlt hB))
 
 /-- `HasVCDimLE.ncard_image_inter_le` read off every finite set of size at most `n` at once:
 the growth function of a family of VC dimension at most `d` is at most `∑ k ≤ d, n.choose k`. -/
@@ -478,8 +477,8 @@ private lemma sum_choose_mul_pow_le_add_one_pow {t : ℝ} (ht : 0 ≤ t) (hdm : 
 
 private lemma one_add_div_pow_le_exp_pow (hm : (0 : ℝ) < m) :
     (1 + (d : ℝ) / m) ^ m ≤ exp 1 ^ d :=
-  calc (1 + (d : ℝ) / m) ^ m ≤ (exp ((d : ℝ) / m)) ^ m :=
-        pow_le_pow_left₀ (by positivity) (by linarith [Real.add_one_le_exp ((d : ℝ) / m)]) m
+  calc (1 + (d : ℝ) / m) ^ m ≤ (exp ((d : ℝ) / m)) ^ m := by
+        gcongr; linarith [Real.add_one_le_exp ((d : ℝ) / m)]
     _ = exp (d : ℝ) := by rw [← Real.exp_nat_mul, mul_comm, div_mul_cancel₀ _ hm.ne']
     _ = exp 1 ^ d := by rw [← Real.exp_nat_mul]; simp
 
